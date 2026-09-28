@@ -1,0 +1,19 @@
+# Rust build artifacts
+/target/
+**/target/
+Cargo.lock
+
+# JetBrains RustRover / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Rust-specific
+**/*.rs.bk
+*.pdb
+
+# Added by cargo
+
+/target
