@@ -15,3 +15,6 @@ tui-input = "0.15.5"
 tui-scrollview = "0.6.8"
 clap = { version = "4", features = ["derive"] }
 toml = "1.1.6"
+strum = "0.26"
+strum_macros = "0.26"
+throbber-widgets-tui = "0.7.1"

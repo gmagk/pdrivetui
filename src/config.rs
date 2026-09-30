@@ -2,41 +2,29 @@ use crate::APP_NAME;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
+use crossterm::event::{KeyEvent, KeyEventKind, KeyModifiers};
+use strum::IntoEnumIterator;
+use crate::keybind::KeyBind;
 
 #[derive(Deserialize)]
 pub struct Config {
     #[serde(default)]
-    keybindings: KeyBindings
+    pub keybindings: KeyBindings
 
 }
 
 #[derive(Deserialize)]
+#[serde(default)] // Automatically uses a default value from ::Default() when none is present
 pub struct KeyBindings {
-
-    #[serde(default)]
-    quit: String,
-
-    #[serde(default)]
-    add: String,
-
-    #[serde(default)]
-    del: String,
-
-    #[serde(default)]
-    download: String,
-
-    #[serde(default)]
-    info: String,
-
-    #[serde(default)]
-    rename: String,
-
-    #[serde(default)]
-    copy: String,
-
-    #[serde(default)]
-    menu: String
-
+    pub quit: String,
+    pub add: String,
+    pub delete: String,
+    pub download: String,
+    pub info: String,
+    pub rename: String,
+    pub copy: String,
+    pub menu: String,
+    pub unknown: String
 }
 
 impl Default for KeyBindings {
@@ -45,35 +33,69 @@ impl Default for KeyBindings {
         KeyBindings {
             quit: "q".to_string(),
             add: "a".to_string(),
-            del: "d".to_string(),
-            download: "D".to_string(),
+            delete: "Ctrl+d".to_string(),
+            download: "d".to_string(),
             info: "i".to_string(),
             rename: "r".to_string(),
             copy: "c".to_string(),
             menu: "m".to_string(),
+            unknown: String::new()
         }
     }
 }
 
 impl Config {
 
+    // priority 1. Find file from cli option
+    // priority 2. Find file from user directory
+    // priority 3. Default values
     pub fn load(path: &str) -> Config {
-        // priority1. Find file from cli option
-        // priority2. Find file from user directory
-        // priority 3. No file
         if Path::new(path).exists() {
-            Self::from_toml(path)
+            return Self::from_toml(path);
         } else {
             let home_path = Self::homedir_path();
 
-            if (Path::new(&home_path).exists()) {
-                Self::from_toml(&home_path)
-            } else  {
-                Config {
-                    keybindings: KeyBindings::default()
-                }
+            if Path::new(&home_path).exists() {
+                return Self::from_toml(&home_path);
             }
         }
+
+        Config {
+            keybindings: KeyBindings::default()
+        }
+    }
+
+    pub fn find_keybind(&self, key_event: &KeyEvent) -> KeyBind {
+
+        // handle only key-down events
+        if key_event.kind != KeyEventKind::Press {
+            return KeyBind::Unknown;
+        }
+
+        let has_ctrl = key_event.modifiers.contains(KeyModifiers::CONTROL);
+        let has_alt = key_event.modifiers.contains(KeyModifiers::ALT);
+
+        for key_bind in KeyBind::iter() {
+            let val = key_bind.value(&self);
+
+            if has_ctrl && !(val.contains("Ctrl+") || val.contains("ctrl+")) {
+                continue;
+            }
+            if has_alt && !(val.contains("Alt+") || val.contains("alt+")) {
+                continue;
+            }
+
+            let val = val
+                .replace("Ctrl+", "")
+                .replace("ctrl+", "")
+                .replace("Alt+", "")
+                .replace("alt+", "");
+            if key_event.code.to_string() == val {
+                return key_bind;
+            }
+        }
+
+        KeyBind::Unknown
     }
 
     fn from_toml(path: &str) -> Config {

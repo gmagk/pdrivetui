@@ -1,7 +1,7 @@
 use std::io::Error;
 use std::process::Command;
 use serde::de::DeserializeOwned;
-use crate::dto::{ListElement, RootDir};
+use crate::dto::{ListElement, TopDir};
 
 pub struct Cli {}
 
@@ -10,11 +10,11 @@ impl Cli {
     const BASE: &str = "proton-drive";
     const FS: &str = "filesystem";
 
-    pub fn list_root() -> Result<Vec<RootDir>, Error> {
+    pub fn list_top() -> Result<Vec<TopDir>, Error> {
         Self::json_to_response(Self::command(format!("{} {} list / --json", Self::BASE, Self::FS)))
     }
 
-    pub fn list_dir(path: String) -> Result<ListElement, Error> {
+    pub fn list_dir(path: String) -> Result<Vec<ListElement>, Error> {
         Self::json_to_response(Self::command(format!("{} {} list {} --json", Self::BASE, Self::FS, path)))
     }
 

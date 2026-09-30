@@ -1,9 +1,10 @@
 mod app;
 mod cli;
-mod utils;
 mod help;
 mod dto;
 mod config;
+mod keybind;
+mod widget;
 
 use crate::app::App;
 use crate::help::Help;
