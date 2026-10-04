@@ -23,7 +23,7 @@ pub struct KeyBindings {
     pub info: String,
     pub rename: String,
     pub copy: String,
-    pub menu: String,
+    pub context_menu: String,
     pub unknown: String
 }
 
@@ -38,7 +38,7 @@ impl Default for KeyBindings {
             info: "i".to_string(),
             rename: "r".to_string(),
             copy: "c".to_string(),
-            menu: "m".to_string(),
+            context_menu: "m".to_string(),
             unknown: String::new()
         }
     }

@@ -1,21 +1,26 @@
 use crate::config::Config;
 use crate::keybind::KeyBind;
+use crate::widget::content_list_widget::ContentListWidget;
+use crate::widget::context_menu_list_widget::ContextMenuListWidget;
 use crate::widget::list_widget::ListWidget;
 use crossterm::event;
-use crossterm::event::{Event, KeyEvent};
+use crossterm::event::{Event, KeyCode, KeyEvent};
 use ratatui::layout::{Alignment, Constraint, Direction, Layout};
+use ratatui::prelude::Color;
 use ratatui::style::Style;
-use ratatui::widgets::{Block, List, ListState, Paragraph, Wrap};
+use ratatui::widgets::{Block, ListState, Paragraph, Wrap};
 use ratatui::{DefaultTerminal, Frame};
 use std::io;
-use ratatui::prelude::Color;
 
 pub struct App {
     config: Config,
     terminal: DefaultTerminal,
-    list_widget: ListWidget,
-    list_state: ListState,
-    show_loading_popup: bool
+    content_widget: ContentListWidget,
+    content_widget_state: ListState,
+    context_menu_widget: ContextMenuListWidget,
+    context_menu_widget_state: ListState,
+    loading_state: bool,
+    context_menu_state: bool
 }
 
 impl App {
@@ -24,16 +29,19 @@ impl App {
         Self {
             config,
             terminal,
-            list_widget: ListWidget::new(),
-            list_state: ListState::default(),
-            show_loading_popup: false
+            content_widget: ContentListWidget::new(),
+            content_widget_state: ListState::default(),
+            context_menu_widget: ContextMenuListWidget::new(),
+            context_menu_widget_state: ListState::default(),
+            loading_state: false,
+            context_menu_state: false
         }
     }
 
     pub fn run(&mut self) -> io::Result<()>{
-        self.list_state.select(Some(0));
-        show_loading_popup(self);
-        self.list_widget.request_top_items();
+        self.content_widget_state.select(Some(0));
+        show_loading(self);
+        self.content_widget.request_top_items();
 
         loop {
 
@@ -55,6 +63,21 @@ impl App {
                 if KeyBind::is_navigation(&key_event) {
                     navigation(&key_event, self);
                 }
+
+                // show context menu
+                if !self.context_menu_state && keybind == KeyBind::ContextMenu {
+                    show_context_menu(self);
+                }
+
+                // hide (all popups, ...)
+                if key_event.code == KeyCode::Esc {
+                    hide_popups(self);
+                }
+
+                // selection
+                if key_event.code == KeyCode::Enter {
+                    selection(self);
+                }
             }
         }
 
@@ -64,11 +87,91 @@ impl App {
 
 fn draw(app: &mut App) {
     let _ = app.terminal.draw(|frame| {
-        render(frame, app.list_widget.get_widget(), &mut app.list_state, &app.show_loading_popup);
+        render(
+            frame,
+            &mut app.content_widget,
+            &mut app.content_widget_state,
+            &mut app.context_menu_widget,
+            &mut app.context_menu_widget_state,
+            &app.loading_state,
+            &app.context_menu_state
+        );
     });
 }
 
-fn render(frame: &mut Frame, list: List, list_state: &mut ListState, show_loading_popup: &bool) {
+fn render(
+    frame: &mut Frame,
+    content_widget: &mut ContentListWidget,
+    content_widget_state: &mut ListState,
+    context_menu_widget: &mut ContextMenuListWidget,
+    context_menu_widget_state: &mut ListState,
+    loading_state: &bool,
+    context_menu_state: &bool
+) {
+    content_and_details(frame, content_widget, content_widget_state);
+
+    if *loading_state {
+        loading_popup(frame)
+    }
+
+    if *context_menu_state {
+        context_menu_popup(frame, content_widget, content_widget_state, context_menu_widget, context_menu_widget_state)
+    }
+}
+
+fn navigation(key_event: &KeyEvent, app: &mut App) {
+    // context menu
+    if app.context_menu_state {
+        if KeyBind::is_nav_down(&key_event) {
+            ListWidget::next(&app.context_menu_widget.selected_menu.items().len(), &mut app.context_menu_widget_state);
+        } else if KeyBind::is_nav_up(&key_event) {
+            ListWidget::previous(&mut app.context_menu_widget_state);
+        }
+        return;
+    }
+
+    // main content
+    if KeyBind::is_nav_down(&key_event) {
+        ListWidget::next(&app.content_widget.latest_results.len(), &mut app.content_widget_state);
+    } else if KeyBind::is_nav_up(&key_event) {
+        ListWidget::previous(&mut app.content_widget_state);
+    } else if KeyBind::is_nav_right(&key_event) {
+        show_loading(app);
+        app.content_widget.request_sub_items(&app.content_widget_state.selected());
+        app.content_widget_state.select(Some(0));
+    } else if KeyBind::is_nav_left(&key_event) {
+        show_loading(app);
+        app.content_widget.request_super_items();
+        app.content_widget_state.select(Some(0));
+    }
+}
+
+fn selection(app: &mut App) {
+    app.context_menu_widget.act(&app.context_menu_widget_state);
+    app.context_menu_state = false;
+    draw(app);
+}
+
+fn show_loading(app: &mut App) {
+    app.loading_state = true;
+    draw(app);
+    app.loading_state = false;
+}
+
+fn show_context_menu(app: &mut App) {
+    app.context_menu_state = true;
+    app.context_menu_widget_state.select(Some(0));
+    draw(app);
+}
+
+fn hide_popups(app: &mut App) {
+    app.context_menu_state = false;
+    // TODO add any other popup which requires manual hiding
+
+    draw(app);
+}
+
+fn content_and_details(frame: &mut Frame, widget: &mut ContentListWidget, state: &mut ListState) {
     let layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![
@@ -83,34 +186,8 @@ fn render(frame: &mut Frame, list: List, list_state: &mut ListState, show_loadin
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
 
-    frame.render_stateful_widget(list, layout[0], list_state);
+    frame.render_stateful_widget(widget.get_widget(), layout[0], state);
     frame.render_widget(details, layout[1]);
-
-    if *show_loading_popup {
-        loading_popup(frame)
-    }
-}
-
-fn navigation(key_event: &KeyEvent, app: &mut App) {
-    if KeyBind::is_nav_down(&key_event) {
-        app.list_widget.next(&mut app.list_state);
-    } else if KeyBind::is_nav_up(&key_event) {
-        app.list_widget.previous(&mut app.list_state);
-    } else if KeyBind::is_nav_right(&key_event) {
-        show_loading_popup(app);
-        app.list_widget.request_sub_items(&app.list_state.selected());
-        app.list_state.select(Some(0));
-    } else if KeyBind::is_nav_left(&key_event) {
-        show_loading_popup(app);
-        app.list_widget.request_super_items();
-        app.list_state.select(Some(0));
-    }
-}
-
-fn show_loading_popup(app: &mut App) {
-    app.show_loading_popup = true;
-    draw(app);
-    app.show_loading_popup = false;
 }
 
 fn loading_popup(frame: &mut Frame) {
@@ -128,5 +205,26 @@ fn loading_popup(frame: &mut Frame) {
     let paragraph = Paragraph::new("Loading...")
         .centered()
         .style(Style::default().fg(Color::DarkGray).bg(Color::DarkGray));
+
     frame.render_widget(paragraph, paragraph_area);
+}
+
+fn context_menu_popup(
+    frame: &mut Frame,
+    content_widget: &mut ContentListWidget,
+    content_widget_state: &mut ListState,
+    context_menu_widget: &mut ContextMenuListWidget,
+    context_menu_widget_state: &mut ListState
+) {
+    let area = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(20),
+            Constraint::Length(20),
+            Constraint::Fill(2)
+        ])
+        .split(frame.area())[1];
+    let widget = context_menu_widget.get_widget(&content_widget, &content_widget_state);
+
+    frame.render_stateful_widget(widget, area, context_menu_widget_state);
 }

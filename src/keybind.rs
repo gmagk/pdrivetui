@@ -11,16 +11,7 @@ pub enum KeyBind {
     Info,
     Rename,
     Copy,
-    Menu,
-    Unknown
-}
-
-#[derive(PartialEq)]
-pub enum StaticKeyBind {
-    Down,
-    Up,
-    Right,
-    Left,
+    ContextMenu,
     Unknown
 }
 
@@ -35,7 +26,7 @@ impl KeyBind {
             Self::Info => String::from("Info"),
             Self::Rename => String::from("Rename"),
             Self::Copy => String::from("Copy"),
-            Self::Menu => String::from("Menu"),
+            Self::ContextMenu => String::from("ContextMenu"),
             _ => String::from("Unknown")
         }
     }
@@ -49,7 +40,7 @@ impl KeyBind {
             Self::Info => config.keybindings.info.clone(),
             Self::Rename => config.keybindings.rename.clone(),
             Self::Copy => config.keybindings.copy.clone(),
-            Self::Menu => config.keybindings.menu.clone(),
+            Self::ContextMenu => config.keybindings.context_menu.clone(),
             _ => String::from("unknown")
         }
     }
