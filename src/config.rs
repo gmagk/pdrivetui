@@ -23,7 +23,6 @@ pub struct KeyBindings {
     pub info: String,
     pub rename: String,
     pub copy: String,
-    pub context_menu: String,
     pub unknown: String
 }
 
@@ -31,14 +30,13 @@ impl Default for KeyBindings {
 
     fn default() -> Self {
         KeyBindings {
-            quit: "q".to_string(),
+            quit: "Ctrl+q".to_string(),
             add: "a".to_string(),
             delete: "Ctrl+d".to_string(),
             download: "d".to_string(),
             info: "i".to_string(),
             rename: "r".to_string(),
             copy: "c".to_string(),
-            context_menu: "m".to_string(),
             unknown: String::new()
         }
     }

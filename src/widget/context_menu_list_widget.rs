@@ -1,9 +1,15 @@
+use std::fmt::format;
+use crossterm::event::KeyEvent;
+use ratatui::Frame;
+use ratatui::layout::Rect;
 use crate::dto::{ListElement, Type};
 use crate::widget::content_list_widget::ContentListWidget;
-use crossterm::event::KeyEvent;
 use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, List, ListState};
 use strum_macros::EnumIter;
+use crate::command::Cli;
+use crate::keybind::KeyBind;
+use crate::widget::list_widget::ListWidget;
 
 #[derive(Clone)]
 pub enum ContextMenuItem {
@@ -38,6 +44,13 @@ impl ContextMenuItem {
             Self::Delete => String::from("Delete"),
             Self::EmptyTrash => String::from("Empty Trash"),
             Self::Cancel => String::from("Cancel")
+        }
+    }
+
+    pub fn is_for_input(&self) -> bool {
+        match self {
+            Self::CreateFolder | Self::Upload | Self::Download => true,
+            _ => false
         }
     }
 }
@@ -104,67 +117,122 @@ impl ContextMenu {
         content_widget_state: &ListState
     ) -> Self {
         let content_state = content_widget_state.selected().unwrap_or_default();
-        let content_element = content_widget.latest_results[content_state].clone();
-        let content_parent_element: ListElement = if content_widget.current_path_elements.is_empty() {
+        let content_element = content_widget.content[content_state].clone();
+        let content_parent_element: ListElement = if content_widget.parents.is_empty() {
             ListElement::default()
         } else {
-            content_widget.current_path_elements[0].clone()
+            content_widget.parents[0].clone()
         };
 
         // When in top level, actions can be done only on /my-files and /trash elements.
         // When in sublevel, actions can be done only on /my-files and /trash subfolders or files.
-        match (widget, content_element, content_parent_element) {
+        match (content_element, content_parent_element) {
             // selected Trash
-            (w,c,cp) if c.is_top_dir && c.top_dir_path == "/trash" => Self::Trash,
+            (c,cp) if c.is_top_dir && c.top_dir_path == "/trash" => Self::Trash,
             // selected a Folder/File inside Trash
-            (w,c,cp) if cp.top_dir_path == "/trash" => Self::InsideTrash,
+            (c,cp) if cp.top_dir_path == "/trash" => Self::InsideTrash,
             // selected MyFiles
-            (w,c,cp) if c.is_top_dir && c.top_dir_path == "/my-files" => Self::MyFiles,
+            (c,cp) if c.is_top_dir && c.top_dir_path == "/my-files" => Self::MyFiles,
             // selected a Folder inside MyFiles
-            (w,c,cp) if cp.top_dir_path == "/my-files" && c.type_ == Type::Folder => Self::InsideMyFilesFolder,
+            (c,cp) if cp.top_dir_path == "/my-files" && c.type_ == Type::Folder => Self::InsideMyFilesFolder,
             // selected a File inside MyFiles
-            (w,c,cp) if cp.top_dir_path == "/my-files" && c.type_ == Type::File => Self::InsideMyFilesFile,
+            (c,cp) if cp.top_dir_path == "/my-files" && c.type_ == Type::File => Self::InsideMyFilesFile,
             // selected Copy from a previous context menu
-            (w,c,cp) if widget.copy_state => Self::Paste,
+            (c,cp) if widget.action_state == ContextMenuActionState::Copy => Self::Paste,
             // selected Move from a previous context menu
-            (w,c,cp) if widget.move_state => Self::Place,
+            (c,cp) if widget.action_state == ContextMenuActionState::Move => Self::Place,
             _ => Self::Unknown
         }
     }
 }
 
+#[derive(Default, PartialEq)]
+pub enum ContextMenuActionState {
+    #[default]
+    Unknown,
+
+    // input for new folder name is opened from previous action
+    CreateFolderInput,
+
+    // input for upload destination folder path is opened from previous action
+    UploadInput,
+
+    // input for local destination folder path is opened from previous action
+    DownloadInput,
+
+    // selected to copy a listElement from previous action
+    Copy,
+
+    // selected to move a listElement from previous action
+    Move
+}
+
+#[derive(Default)]
 pub struct ContextMenuListWidget {
-    pub selected_menu: ContextMenu,
-    copy_state: bool,
-    move_state: bool
+    pub state: ContextMenu,
+    pub list_state: ListState,
+    action_state: ContextMenuActionState,
+    action_state_context: String
 }
 
 impl ContextMenuListWidget {
 
-    pub fn new() -> Self {
-        Self {
-            selected_menu: ContextMenu::Unknown,
-            copy_state: false,
-            move_state: false
-        }
-    }
+    pub fn render(&mut self, frame: &mut Frame, area: Rect, content_widget: &ContentListWidget) {
+        self.state = ContextMenu::find(&self, &content_widget, &content_widget.list_state);
 
-    pub fn get_widget(&mut self, content_widget: &ContentListWidget, content_widget_state: &ListState) -> List {
-        self.selected_menu = ContextMenu::find(&self, &content_widget, &content_widget_state);
-
-        List::new(self.selected_menu.items().iter().map(|item| item.name()).collect::<Vec<String>>())
-            .block(Block::default().title("Actions").borders(Borders::NONE))
+        let widget = List::new(self.state.items().iter().map(|item| item.name()).collect::<Vec<String>>())
+            .block(Block::default().title(" Actions ").borders(Borders::NONE))
             .style(Style::new().white().on_black())
             .highlight_style(Style::default()
                 .add_modifier(Modifier::REVERSED)
                 .fg(Color::DarkGray)
                 .bg(Color::DarkGray)
-            )
+            );
+
+        frame.render_stateful_widget(widget, area, &mut self.list_state);
     }
 
-    pub fn act(&self, state: &ListState) {
-        match self.selected_menu.items()[state.selected().unwrap_or_default()] {
-            ContextMenuItem::CreateFolder => {},
+    pub fn navigation(&mut self, key_event: &KeyEvent) {
+        if KeyBind::is_nav_down(&key_event) {
+            ListWidget::next(&self.state.items().len(), &mut self.list_state);
+        } else if KeyBind::is_nav_up(&key_event) {
+            ListWidget::previous(&mut self.list_state);
+        }
+    }
+
+    pub fn action(&mut self, context_menu_input_state: &mut bool) {
+        *context_menu_input_state = true
+    }
+
+    pub fn reset(&mut self) {
+        self.list_state.select(Some(0));
+    }
+
+    pub fn action_MIGRATE_TO_INPUT(
+        &self,
+        context_menu_widget: &ContextMenuListWidget,
+        context_menu_widget_state: &ListState,
+        content_widget: &ContentListWidget,
+        content_widget_state: &ListState,
+        context_menu_input_state: &mut bool
+    ) {
+        let selected_menu_item = &self.state.items()[context_menu_widget_state.selected().unwrap_or_default()];
+        let selected_content_item = &content_widget.content[content_widget_state.selected().unwrap_or_default()];
+        let selected_content_item_full_path = content_widget.full_path(&content_widget_state.selected());
+
+        match selected_menu_item {
+            ContextMenuItem::CreateFolder => {
+                // a new folder name is already given from previous action
+                if  self.action_state == ContextMenuActionState::CreateFolderInput {
+                    if !self.action_state_context.is_empty() {
+                        let new_folder_name = &self.action_state_context;
+                        Cli::create_folder(&selected_content_item_full_path, &new_folder_name);
+                    }
+                } // input for new folder's name
+                else {
+
+                }
+            },
             ContextMenuItem::Upload => {},
             ContextMenuItem::Download => {},
             ContextMenuItem::Rename => {},

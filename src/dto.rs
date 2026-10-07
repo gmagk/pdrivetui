@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-#[derive(Default, Clone, PartialEq, Deserialize)]
+#[derive(Default, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Type {
     #[default]
@@ -35,20 +35,20 @@ impl Default for TopDir {
 }
 
 
-#[derive(Default, Clone,  Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)] // automatically use a default value when none is present in the data
 pub struct OkValue {
     pub ok: bool,
     pub value: String
 }
 
-#[derive(Default, Clone,  Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)] // automatically use a default value when none is present in the data
 pub struct OwnedBy {
     pub email: String
 }
 
-#[derive(Default, Clone,  Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)] // automatically use a default value when none is present in the data
 pub struct ListElement {
     pub uid: String,

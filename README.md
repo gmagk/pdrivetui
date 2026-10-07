@@ -8,12 +8,11 @@ modifiers supported `Ctrl`,`Alt`, the order does not matter
 add in config-file:  
 ```toml
 [keybindings]
-quit = "q"
+quit = "Ctrl+q"
 add = "a"
 del = "Ctrl+d"
 download = "d"
 info = "i"
 rename = "r"
 copy = "c"
-menu = "m"
 ```  

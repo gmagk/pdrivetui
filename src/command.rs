@@ -14,8 +14,12 @@ impl Cli {
         Self::json_to_response(Self::command(format!("{} {} list / --json", Self::BASE, Self::FS)))
     }
 
-    pub fn list_dir(path: String) -> Result<Vec<ListElement>, Error> {
+    pub fn list_dir(path: &String) -> Result<Vec<ListElement>, Error> {
         Self::json_to_response(Self::command(format!("{} {} list {} --json", Self::BASE, Self::FS, path)))
+    }
+
+    pub fn create_folder(parent_path: &String, name: &String) -> Result<ListElement, Error> {
+        Self::json_to_response(Self::command(format!("{} {} create-folder {} {} --json", Self::BASE, Self::FS, parent_path, name)))
     }
 
     fn command(command: String) -> Vec<String> {

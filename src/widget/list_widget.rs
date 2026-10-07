@@ -5,19 +5,16 @@ pub struct  ListWidget {}
 impl ListWidget {
 
     pub fn next(total: &usize, list_state: &mut ListState) {
-        let max_index = total - 1;
-        let i = match list_state.selected() {
-            Some(i) => if i == max_index { i } else { i + 1 }
-            None => 0,
-        };
-        list_state.select(Some(i));
+        let selected = list_state.selected().unwrap_or(0);
+        let new = if selected == total - 1 { selected } else { selected + 1 };
+
+        list_state.select(Some(new));
     }
 
     pub fn previous(list_state: &mut ListState) {
-        let i = match list_state.selected() {
-            Some(i) => if i > 0 { i - 1 } else { i }
-            None => 0,
-        };
-        list_state.select(Some(i));
+        let selected = list_state.selected().unwrap_or(0);
+        let new = if selected > 0 { selected - 1 } else { selected };
+
+        list_state.select(Some(new));
     }
 }
