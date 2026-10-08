@@ -16,3 +16,7 @@ info = "i"
 rename = "r"
 copy = "c"
 ```  
+
+### Naming
+when Renaming or Creating New Folder, spaces get replaced by underscore "_",  
+any invalid characters will prevent the action from completing successfully

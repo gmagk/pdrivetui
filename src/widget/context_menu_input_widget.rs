@@ -1,5 +1,5 @@
-use crate::widget::context_menu_input_widget::ContextMenuInput::{DownloadDestination, NewFolder, NewName, Unknown, UploadSource};
-use crate::widget::context_menu_list_widget::{ContextMenuItem, ContextMenuListWidget};
+use crate::widget::context_menu_input_widget::ContextMenuInput::{DownloadDestination, NewSubFolder, NewName, Unknown, UploadSource};
+use crate::widget::context_menu_widget::{ContextMenuActionState, ContextMenuItem, ContextMenuWidget};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::Stylize;
@@ -12,7 +12,7 @@ use tui_input::Input;
 pub enum ContextMenuInput {
     #[default]
     Unknown,
-    NewFolder,
+    NewSubFolder,
     NewName,
     UploadSource,
     DownloadDestination
@@ -21,7 +21,7 @@ pub enum ContextMenuInput {
 impl ContextMenuInput {
     pub fn title(&self) -> String {
         match self {
-            NewFolder => " New Folder ".to_string(),
+            NewSubFolder => " New SubFolder ".to_string(),
             NewName => " New Name ".to_string(),
             UploadSource => " Upload Source ".to_string(),
             DownloadDestination => " Download Destination ".to_string(),
@@ -29,15 +29,12 @@ impl ContextMenuInput {
         }
     }
 
-    pub fn find(
-        context_menu_widget: &ContextMenuListWidget,
-        context_menu_widget_state: &ListState
-    ) -> Self {
-        let context_menu_selected_index = context_menu_widget_state.selected().unwrap_or_default();
-        let context_menu_selected_item = &context_menu_widget.state.items()[context_menu_selected_index].clone();
+    pub fn find(context_menu_widget: &ContextMenuWidget) -> Self {
+        let context_menu_selected_index = context_menu_widget.list_state.selected().unwrap_or_default();
+        let context_menu_selected_item = &context_menu_widget.menu.items()[context_menu_selected_index].clone();
 
         match context_menu_selected_item {
-            ContextMenuItem::CreateFolder => NewFolder,
+            ContextMenuItem::CreateFolder => NewSubFolder,
             ContextMenuItem::Rename => NewName,
             ContextMenuItem::Upload => UploadSource,
             ContextMenuItem::Download => DownloadDestination,
@@ -49,13 +46,13 @@ impl ContextMenuInput {
 #[derive(Default)]
 pub struct ContextMenuInputWidget {
     pub input: Input,
-    state: ContextMenuInput
+    menu_input: ContextMenuInput
 }
 
 impl ContextMenuInputWidget {
 
-    pub fn render(&mut self, frame: &mut Frame, area: Rect, context_menu_widget: &ContextMenuListWidget) {
-        self.state = ContextMenuInput::find(&context_menu_widget, &context_menu_widget.list_state);
+    pub fn render(&mut self, frame: &mut Frame, area: Rect, context_menu_widget: &ContextMenuWidget) {
+        self.menu_input = ContextMenuInput::find(&context_menu_widget);
 
         let [input_area] = Layout::horizontal([Constraint::Percentage(50)])
             .flex(Flex::Center)
@@ -65,7 +62,7 @@ impl ContextMenuInputWidget {
             .areas(input_area);
         let width = input_area.width.max(3) - 3;
         let scroll = self.input.visual_scroll(width as usize);
-        let title = Line::from(vec![self.state.title().bold()]);
+        let title = Line::from(vec![self.menu_input.title().bold()]);
         let block = Block::bordered()
             .title(title.centered())
             .border_set(border::PLAIN);
@@ -84,5 +81,37 @@ impl ContextMenuInputWidget {
 
     pub fn reset(&mut self) {
         self.input.reset();
+    }
+
+    pub fn action(
+        &mut self,
+        loading_state: &mut bool,
+        context_menu_input_state: &mut bool,
+        context_menu_state: &mut bool,
+        context_menu_widget: &mut ContextMenuWidget
+    ) {
+        *loading_state = true;
+        *context_menu_input_state = false;
+        *context_menu_state = false;
+
+        match self.menu_input {
+            NewSubFolder => {
+                context_menu_widget.action_state = ContextMenuActionState::CreateFolderInput;
+                context_menu_widget.action_state_context = self.input.value().to_string();
+            },
+            NewName => {
+                context_menu_widget.action_state = ContextMenuActionState::RenameInput;
+                context_menu_widget.action_state_context = self.input.value().to_string();
+            },
+            UploadSource => {
+                context_menu_widget.action_state = ContextMenuActionState::UploadInput;
+                context_menu_widget.action_state_context = self.input.value().to_string();
+            },
+            DownloadDestination => {
+                context_menu_widget.action_state = ContextMenuActionState::DownloadInput;
+                context_menu_widget.action_state_context = self.input.value().to_string();
+            },
+            _ => {}
+        }
     }
 }

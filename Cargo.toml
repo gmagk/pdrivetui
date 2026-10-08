@@ -17,3 +17,4 @@ clap = { version = "4", features = ["derive"] }
 toml = "1.1.6"
 strum = "0.26"
 strum_macros = "0.26"
+url = "2.5.8"

@@ -1,5 +1,5 @@
 mod app;
-mod command;
+mod cli;
 mod help;
 mod dto;
 mod config;

@@ -1,7 +1,8 @@
+use url::Url;
 use crossterm::event::KeyEvent;
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use crate::command::Cli;
+use crate::cli::Cli;
 use crate::dto::{ListElement, TopDir, Type};
 use ratatui::prelude::Style;
 use ratatui::style::{Color, Modifier};
@@ -18,14 +19,14 @@ enum ContentListActionState {
 }
 
 #[derive(Default)]
-pub struct ContentListWidget {
+pub struct ContentWidget {
     pub content: Vec<ListElement>,
     pub parents: Vec<ListElement>,
     pub list_state: ListState,
     action_state: ContentListActionState
 }
 
-impl ContentListWidget {
+impl ContentWidget {
 
     pub fn check_state(&mut self) {
         match self.action_state {
@@ -40,6 +41,7 @@ impl ContentListWidget {
             _ => {}
         }
 
+        self.action_state = ContentListActionState::Unknown;
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
@@ -128,7 +130,7 @@ impl ContentListWidget {
             path = self.parents[0].top_dir_path.clone();
             self.parents.iter().skip(1).for_each(|list_element: &ListElement| {
                 path += "/";
-                path += list_element.uid.to_string().as_str();
+                path += list_element.name.value.as_str();
             });
         }
 
@@ -148,32 +150,53 @@ impl ContentListWidget {
             let mut path = self.parents[0].top_dir_path.clone();
             self.parents.iter().skip(1).for_each(|list_element: &ListElement| {
                 path += "/";
-                path += list_element.uid.to_string().as_str();
+                path += list_element.name.value.as_str();
             });
 
             self.content = Cli::list_dir(&path).unwrap_or_default();
         }
     }
 
+    pub fn refresh_items(&mut self) {
+        let mut path = String::new();
+
+        self.parents.iter().for_each(|list_element: &ListElement| {
+            if list_element.is_top_dir {
+                path += list_element.top_dir_path.as_str();
+            } else {
+                path += "/";
+                path += list_element.name.value.as_str();
+            }
+        });
+
+        self.content = Cli::list_dir(&path).unwrap_or_default();
+    }
+
     pub fn full_path(&self, selected_index: &Option<usize>) -> String {
         let index = selected_index.unwrap_or(0);
         let mut path = String::new();
+        let empty_element = &ListElement::default();
+        let element = self.content.get(index).unwrap_or(empty_element);
 
         // top level
-        if !self.parents.is_empty() {
-            path += &self.parents[0].top_dir_path;
+        if self.parents.is_empty() {
+            return element.top_dir_path.clone();
         }
 
-        // sublevels
-        self.parents.iter().skip(1).for_each(|list_element: &ListElement| {
+        // sublevel
+        self.parents.iter().for_each(|parent: &ListElement| {
             let mut p = String::new();
-            p += "/";
-            p += list_element.uid.to_string().as_str();
+            if parent.is_top_dir {
+                p += parent.top_dir_path.to_string().as_str();
+            } else {
+                p += "/";
+                p += parent.name.value.as_str();
+            }
             path += p.as_str();
         });
 
-        // selected folder
-        path += self.content.get(index).unwrap_or(&ListElement::default()).uid.to_string().as_str();
+        path += "/";
+        path += self.content.get(index).unwrap_or(&empty_element).name.value.as_str();
 
         path
     }

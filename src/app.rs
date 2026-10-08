@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::keybind::KeyBind;
-use crate::widget::content_list_widget::ContentListWidget;
+use crate::widget::content_widget::ContentWidget;
 use crate::widget::context_menu_input_widget::ContextMenuInputWidget;
-use crate::widget::context_menu_list_widget::ContextMenuListWidget;
+use crate::widget::context_menu_widget::ContextMenuWidget;
 use crate::widget::details_widget::DetailsWidget;
 use crate::widget::loading_widget::LoadingWidget;
 use crossterm::event;
@@ -17,8 +17,8 @@ pub struct App {
     terminal: DefaultTerminal,
     loading_widget: LoadingWidget,
     details_widget: DetailsWidget,
-    content_widget: ContentListWidget,
-    context_menu_widget: ContextMenuListWidget,
+    content_widget: ContentWidget,
+    context_menu_widget: ContextMenuWidget,
     context_menu_input_widget: ContextMenuInputWidget,
     loading_state: bool,
     context_menu_state: bool,
@@ -32,9 +32,9 @@ impl App {
             config,
             terminal,
             loading_widget: LoadingWidget::default(),
-            content_widget: ContentListWidget::default(),
+            content_widget: ContentWidget::default(),
             details_widget: DetailsWidget::default(),
-            context_menu_widget: ContextMenuListWidget::default(),
+            context_menu_widget: ContextMenuWidget::default(),
             context_menu_input_widget: ContextMenuInputWidget::default(),
             loading_state: false,
             context_menu_state: false,
@@ -110,9 +110,9 @@ impl App {
 fn render(
     frame: &mut Frame,
     loading_widget: &mut LoadingWidget,
-    content_widget: &mut ContentListWidget,
+    content_widget: &mut ContentWidget,
     details_widget: &mut DetailsWidget,
-    context_menu_widget: &mut ContextMenuListWidget,
+    context_menu_widget: &mut ContextMenuWidget,
     context_menu_input_widget: &mut ContextMenuInputWidget,
     loading_state: &mut bool,
     context_menu_state: & bool,
@@ -146,9 +146,18 @@ fn navigation(app: &mut App, key_event: &KeyEvent) {
 
 fn action(app: &mut App) {
     if app.context_menu_input_state {
-        // submit
+        app.context_menu_input_widget.action(
+            &mut app.loading_state,
+            &mut app.context_menu_input_state,
+            &mut app.context_menu_state,
+            &mut app.context_menu_widget
+        )
     } else if app.context_menu_state {
-        app.context_menu_widget.action(&mut app.context_menu_input_state);
+        app.context_menu_widget.action(
+            &mut app.loading_state,
+            &mut app.context_menu_state,
+            &mut app.context_menu_input_state
+        );
     } else {
         app.content_widget.action(&mut app.context_menu_state);
     }
@@ -163,6 +172,7 @@ fn show_loader(app: &mut App) {
         app.render();
 
         app.content_widget.check_state();
+        app.context_menu_widget.check_state(&mut app.content_widget);
 
         app.loading_state = false;
     }
@@ -182,7 +192,7 @@ fn clear(app: &mut App) {
 
 fn content_and_details(
     frame: &mut Frame,
-    content_widget: &mut ContentListWidget,
+    content_widget: &mut ContentWidget,
     details_widget: & DetailsWidget
 ) {
     let area = Layout::default()
@@ -207,8 +217,8 @@ fn loading_popup(frame: &mut Frame, loading_widget: &mut LoadingWidget) {
 
 fn context_menu_popup(
     frame: &mut Frame,
-    content_widget: &mut ContentListWidget,
-    context_menu_widget: &mut ContextMenuListWidget
+    content_widget: &mut ContentWidget,
+    context_menu_widget: &mut ContextMenuWidget
 ) {
     let area = Layout::default()
         .direction(Direction::Horizontal)
@@ -224,7 +234,7 @@ fn context_menu_popup(
 
 fn context_menu_input_popup(
     frame: &mut Frame,
-    context_menu_widget: &mut ContextMenuListWidget,
+    context_menu_widget: &mut ContextMenuWidget,
     context_menu_input_widget: &mut ContextMenuInputWidget
 ) {
     let area = Layout::default()
