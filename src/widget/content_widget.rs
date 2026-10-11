@@ -2,7 +2,7 @@ use url::Url;
 use crossterm::event::KeyEvent;
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use crate::cli::Cli;
+use crate::service::Service;
 use crate::dto::{ListElement, TopDir, Type};
 use ratatui::prelude::Style;
 use ratatui::style::{Color, Modifier};
@@ -100,7 +100,7 @@ impl ContentWidget {
 
     // converts TopDir DTOs to ListElements for unified later handling
     pub fn request_top_items(&mut self) {
-        let result = Cli::list_top().unwrap_or_default();
+        let result = Service::list_top().unwrap_or_default();
         self.content = Vec::new();
         self.parents = Vec::new();
         let _ = result
@@ -138,7 +138,7 @@ impl ContentWidget {
             });
         }
 
-        self.content = Cli::list_dir(&path).unwrap_or_default();
+        self.content = Service::list_dir(&path).unwrap_or_default();
     }
 
     pub fn request_super_items(&mut self) {
@@ -157,7 +157,7 @@ impl ContentWidget {
                 path += list_element.name.value.as_str();
             });
 
-            self.content = Cli::list_dir(&path).unwrap_or_default();
+            self.content = Service::list_dir(&path).unwrap_or_default();
         }
     }
 
@@ -180,7 +180,7 @@ impl ContentWidget {
             }
         });
 
-        self.content = Cli::list_dir(&path).unwrap_or_default();
+        self.content = Service::list_dir(&path).unwrap_or_default();
     }
 
     pub fn full_path(&self, selected_index: &Option<usize>) -> String {

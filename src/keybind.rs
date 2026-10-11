@@ -5,12 +5,7 @@ use crate::config::Config;
 #[derive(PartialEq, EnumIter)]
 pub enum KeyBind {
     Quit,
-    Add,
-    Delete,
-    Download,
-    Info,
-    Rename,
-    Copy,
+    Keybindings,
     Unknown
 }
 
@@ -19,12 +14,7 @@ impl KeyBind {
     pub fn name(&self) -> String {
         match self {
             Self::Quit => String::from("Quit"),
-            Self::Add => String::from("Add"),
-            Self::Delete => String::from("Delete"),
-            Self::Download => String::from("Download"),
-            Self::Info => String::from("Info"),
-            Self::Rename => String::from("Rename"),
-            Self::Copy => String::from("Copy"),
+            Self::Keybindings => String::from("Keybindings"),
             _ => String::from("Unknown")
         }
     }
@@ -32,12 +22,7 @@ impl KeyBind {
     pub fn value(&self, config: &Config) -> String {
         match self {
             Self::Quit => config.keybindings.quit.clone(),
-            Self::Add => config.keybindings.add.clone(),
-            Self::Delete => config.keybindings.delete.clone(),
-            Self::Download => config.keybindings.download.clone(),
-            Self::Info => config.keybindings.info.clone(),
-            Self::Rename => config.keybindings.rename.clone(),
-            Self::Copy => config.keybindings.copy.clone(),
+            Self::Keybindings => config.keybindings.keybindings.clone(),
             _ => String::from("unknown")
         }
     }
@@ -68,7 +53,7 @@ impl KeyBind {
     }
 
     pub fn is_nav_pageup(key_event: &KeyEvent) -> bool {
-        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('u')) || 
+        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('u')) ||
         key_event.code == KeyCode::PageUp
     }
 

@@ -8,7 +8,7 @@ pub struct LoadingWidget {}
 
 impl LoadingWidget {
 
-    pub fn render(&self, frame: &mut Frame, area: Rect) {
+    pub fn render(frame: &mut Frame, area: Rect) {
         let content_area = Layout::default()
             .direction(Direction::Vertical)
             .constraints([

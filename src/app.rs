@@ -11,15 +11,16 @@ use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::{DefaultTerminal, Frame};
 use std::io;
 use tui_input::backend::crossterm::EventHandler;
+use crate::widget::keybindings_widget::KeybindingsWidget;
 
 pub struct App {
     config: Config,
     terminal: DefaultTerminal,
-    loading_widget: LoadingWidget,
     details_widget: DetailsWidget,
     content_widget: ContentWidget,
     context_menu_widget: ContextMenuWidget,
     context_menu_input_widget: ContextMenuInputWidget,
+    keybindings_state: bool,
     loading_state: bool,
     context_menu_state: bool,
     context_menu_input_state: bool
@@ -31,11 +32,11 @@ impl App {
         Self {
             config,
             terminal,
-            loading_widget: LoadingWidget::default(),
             content_widget: ContentWidget::default(),
             details_widget: DetailsWidget::default(),
             context_menu_widget: ContextMenuWidget::default(),
             context_menu_input_widget: ContextMenuInputWidget::default(),
+            keybindings_state: false,
             loading_state: false,
             context_menu_state: false,
             context_menu_input_state: false
@@ -84,6 +85,12 @@ impl App {
                 if KeyBind::is_navigation(&key_event) {
                     navigation(self, &key_event);
                 }
+
+                // keybindings
+                if keybind == KeyBind::Keybindings {
+                    self.keybindings_state = true;
+                    self.render()
+                }
             }
         }
 
@@ -94,11 +101,11 @@ impl App {
         let _ = self.terminal.draw(|frame| {
             render(
                 frame,
-                &mut self.loading_widget,
                 &mut self.content_widget,
                 &mut self.details_widget,
                 &mut self.context_menu_widget,
                 &mut self.context_menu_input_widget,
+                &mut self.keybindings_state,
                 &mut self.loading_state,
                 &mut self.context_menu_state,
                 & self.context_menu_input_state
@@ -109,19 +116,23 @@ impl App {
 
 fn render(
     frame: &mut Frame,
-    loading_widget: &mut LoadingWidget,
     content_widget: &mut ContentWidget,
     details_widget: &mut DetailsWidget,
     context_menu_widget: &mut ContextMenuWidget,
     context_menu_input_widget: &mut ContextMenuInputWidget,
+    keybindings_state: &mut bool,
     loading_state: &mut bool,
     context_menu_state: &mut bool,
     context_menu_input_state: & bool
 ) {
     content_and_details(frame, content_widget, details_widget);
 
+    if *keybindings_state {
+        keybindings_popup(frame);
+    }
+
     if *loading_state {
-        loading_popup(frame, loading_widget);
+        loading_popup(frame);
     }
 
     if *context_menu_state {
@@ -169,7 +180,9 @@ fn input(app: &mut App, event: &Event) {
 }
 
 fn show_loader(app: &mut App) {
+
     if app.loading_state {
+        clear(app);
         app.render();
 
         app.content_widget.check_state();
@@ -187,6 +200,7 @@ fn clear(app: &mut App) {
         app.context_menu_widget.reset();
         app.context_menu_state = false;
     }
+    app.keybindings_state = false;
 }
 
 fn content_and_details(
@@ -206,12 +220,20 @@ fn content_and_details(
     details_widget.render(frame, area[1]);
 }
 
-fn loading_popup(frame: &mut Frame, loading_widget: &mut LoadingWidget) {
+fn keybindings_popup(frame: &mut Frame) {
+    let area = frame
+        .area()
+        .centered(Constraint::Percentage(50), Constraint::Percentage(50));
+
+    KeybindingsWidget::render(frame, area);
+}
+
+fn loading_popup(frame: &mut Frame) {
     let area = frame
         .area()
         .centered(Constraint::Percentage(20), Constraint::Percentage(20));
 
-    loading_widget.render(frame, area);
+    LoadingWidget::render(frame, area);
 }
 
 fn context_menu_popup(

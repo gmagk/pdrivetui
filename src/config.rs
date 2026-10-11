@@ -1,10 +1,9 @@
-use crate::APP_NAME;
-use serde::Deserialize;
-use std::path::{Path, PathBuf};
-use std::{env, fs};
-use crossterm::event::{KeyEvent, KeyEventKind, KeyModifiers};
-use strum::IntoEnumIterator;
 use crate::keybind::KeyBind;
+use crossterm::event::{KeyEvent, KeyEventKind, KeyModifiers};
+use serde::Deserialize;
+use std::path::Path;
+use std::fs;
+use strum::IntoEnumIterator;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -14,16 +13,12 @@ pub struct Config {
 }
 
 #[derive(Deserialize)]
-#[serde(default)] // Automatically uses a default value from ::Default() when none is present
 pub struct KeyBindings {
+    #[serde(default)]
+    pub unknown: String,
+
     pub quit: String,
-    pub add: String,
-    pub delete: String,
-    pub download: String,
-    pub info: String,
-    pub rename: String,
-    pub copy: String,
-    pub unknown: String
+    pub keybindings: String
 }
 
 impl Default for KeyBindings {
@@ -31,12 +26,7 @@ impl Default for KeyBindings {
     fn default() -> Self {
         KeyBindings {
             quit: "Ctrl+q".to_string(),
-            add: "a".to_string(),
-            delete: "Ctrl+d".to_string(),
-            download: "d".to_string(),
-            info: "i".to_string(),
-            rename: "r".to_string(),
-            copy: "c".to_string(),
+            keybindings: "?".to_string(),
             unknown: String::new()
         }
     }
@@ -44,18 +34,11 @@ impl Default for KeyBindings {
 
 impl Config {
 
-    // priority 1. Find file from cli option
-    // priority 2. Find file from user directory
-    // priority 3. Default values
+    // priority 1. Find file from cli option (if missing then uses default user directory)
+    // priority 2. Default values
     pub fn load(path: &str) -> Config {
         if Path::new(path).exists() {
             return Self::from_toml(path);
-        } else {
-            let home_path = Self::homedir_path();
-
-            if Path::new(&home_path).exists() {
-                return Self::from_toml(&home_path);
-            }
         }
 
         Config {
@@ -109,11 +92,5 @@ impl Config {
                 keybindings: KeyBindings::default()
             }
         })
-    }
-
-    fn homedir_path() -> String {
-        let home_dir = env::home_dir().unwrap_or_else(|| PathBuf::default());
-
-        format!("{}/.{}/config.toml", home_dir.to_str().unwrap(), APP_NAME.to_lowercase())
     }
 }

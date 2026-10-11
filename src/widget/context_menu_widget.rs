@@ -1,4 +1,4 @@
-use crate::cli::Cli;
+use crate::service::Service;
 use crate::dto::{ListElement, Type};
 use crate::keybind::KeyBind;
 use crate::widget::content_widget::ContentWidget;
@@ -46,13 +46,6 @@ impl ContextMenuItem {
             Self::EmptyTrash => String::from("Empty Trash"),
             Self::Cancel => String::from("Cancel"),
             Self::Unknown => String::from("")
-        }
-    }
-
-    pub fn is_for_input(&self) -> bool {
-        match self {
-            Self::CreateFolder | Self::Upload | Self::Download => true,
-            _ => false
         }
     }
 }
@@ -202,7 +195,7 @@ impl ContextMenuWidget {
                 }
                 let new_folder_name = &self.action_state_context.replace(" ", "_");
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::create_folder(&full_path, &new_folder_name);
+                let _ = Service::create_folder(&full_path, &new_folder_name);
                 content_widget.request_sub_items(&content_widget.list_state.selected());
 
                 self.action_state = ContextMenuActionState::Unknown;
@@ -214,7 +207,7 @@ impl ContextMenuWidget {
 
                 let new_name = &self.action_state_context.replace(" ", "_");
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::rename(&full_path, &new_name);
+                let _ = Service::rename(&full_path, &new_name);
                 content_widget.request_refresh_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
@@ -226,7 +219,7 @@ impl ContextMenuWidget {
 
                 let source = &self.action_state_context.replace(" ", "_");
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::upload(&full_path, &source);
+                let _ = Service::upload(&full_path, &source);
                 content_widget.request_sub_items(&content_widget.list_state.selected());
 
                 self.action_state = ContextMenuActionState::Unknown;
@@ -238,33 +231,33 @@ impl ContextMenuWidget {
 
                 let destination = &self.action_state_context;
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::download(&full_path, &destination);
+                let _ = Service::download(&full_path, &destination);
 
                 self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::Deletion => {
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::delete(&full_path);
+                let _ = Service::delete(&full_path);
                 content_widget.request_refresh_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::Trashing => {
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::trash(&full_path);
+                let _ = Service::trash(&full_path);
                 content_widget.request_refresh_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::Restoration => {
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::restore(&full_path);
+                let _ = Service::restore(&full_path);
                 content_widget.request_refresh_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::TrashCleaning => {
-                let _ = Cli::empty_trash();
+                let _ = Service::empty_trash();
                 content_widget.request_refresh_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
@@ -272,7 +265,7 @@ impl ContextMenuWidget {
             ContextMenuActionState::Paste => {
                 let source_path = &self.action_state_context;
                 let target_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::paste_to(&source_path, &target_path);
+                let _ = Service::paste_to(&source_path, &target_path);
                 content_widget.request_refresh_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
@@ -280,7 +273,7 @@ impl ContextMenuWidget {
             ContextMenuActionState::Place => {
                 let source_path = &self.action_state_context;
                 let target_path = content_widget.full_path(&content_widget.list_state.selected());
-                let _ = Cli::move_to(&source_path, &target_path);
+                let _ = Service::move_to(&source_path, &target_path);
                 content_widget.request_refresh_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
@@ -382,8 +375,7 @@ impl ContextMenuWidget {
                 self.action_state = ContextMenuActionState::Place;
             }
             ContextMenuItem::Cancel => {
-                self.action_state = ContextMenuActionState::Unknown;
-                self.action_state_context = "".to_string();
+                self.reset_action_state()
             }
             _ => {}
         }
@@ -391,6 +383,11 @@ impl ContextMenuWidget {
 
     pub fn reset(&mut self) {
         self.list_state.select(Some(0));
+    }
+
+    fn reset_action_state(&mut self) {
+        self.action_state = ContextMenuActionState::Unknown;
+        self.action_state_context = "".to_string();
     }
 }
 
