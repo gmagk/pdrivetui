@@ -32,14 +32,14 @@ pub enum ContextMenuItem {
 impl ContextMenuItem {
     pub fn name(&self) -> String {
         match self {
-            Self::CreateFolder => String::from("Create Folder"),
+            Self::CreateFolder => String::from("Create SubFolder"),
             Self::Upload => String::from("Upload"),
             Self::Download => String::from("Download"),
             Self::Rename => String::from("Rename"),
             Self::Copy => String::from("Copy"),
-            Self::Paste => String::from("Paste Here"),
+            Self::Paste => String::from("Paste In Here"),
             Self::Move => String::from("Move"),
-            Self::Place => String::from("Place Here"),
+            Self::Place => String::from("Place In Here"),
             Self::Trash => String::from("Trash"),
             Self::Restore => String::from("Restore"),
             Self::Delete => String::from("Delete"),
@@ -57,14 +57,12 @@ impl ContextMenuItem {
     }
 }
 
-#[derive(Default, EnumIter)]
+#[derive(Default, PartialEq, EnumIter)]
 pub enum ContextMenu {
     #[default]
     Unknown,
-    // keep these first, in order to be checked first in search loops: [
     PendingPaste,
     PendingPlace,
-    // ]
     Trash,
     InsideTrash,
     MyFiles,
@@ -129,6 +127,12 @@ impl ContextMenu {
         // When in top level, actions can be done only on /my-files and /trash elements.
         // When in sublevel, actions can be done only on /my-files and /trash subfolders or files.
         match (content_element, content_parent_element) {
+        // keep these first, in order to be checked first in search loops: [
+            // selected Copy from a previous context menu, only on /my-files folder and subfolders
+            (c,cp) if (c.top_dir_path == "/my-files" || cp.top_dir_path == "/my-files") && widget.action_state == ContextMenuActionState::ReadyToPaste => Self::PendingPaste,
+            // selected Move from a previous context menu, only on /my-files folder and subfolders
+            (c,cp) if (c.top_dir_path == "/my-files" || cp.top_dir_path == "/my-files") && widget.action_state == ContextMenuActionState::ReadyToPlace => Self::PendingPlace,
+        // ]
             // selected Trash
             (c,cp) if c.is_top_dir && c.top_dir_path == "/trash" => Self::Trash,
             // selected a Folder/File inside Trash
@@ -139,10 +143,6 @@ impl ContextMenu {
             (c,cp) if cp.top_dir_path == "/my-files" && c.type_ == Type::Folder => Self::InsideMyFilesFolder,
             // selected a File inside MyFiles
             (c,cp) if cp.top_dir_path == "/my-files" && c.type_ == Type::File => Self::InsideMyFilesFile,
-            // selected Copy from a previous context menu
-            (c,cp) if widget.action_state == ContextMenuActionState::CopyPaste => Self::PendingPaste,
-            // selected Move from a previous context menu
-            (c,cp) if widget.action_state == ContextMenuActionState::MovePlace => Self::PendingPlace,
             _ => Self::Unknown
         }
     }
@@ -166,10 +166,14 @@ pub enum ContextMenuActionState {
     RenameInput,
 
     // selected to copy a listElement from previous action
-    CopyPaste,
+    ReadyToPaste,
+
+    Paste,
 
     // selected to move a listElement from previous action
-    MovePlace,
+    ReadyToPlace,
+
+    Place,
 
     Deletion,
 
@@ -200,6 +204,8 @@ impl ContextMenuWidget {
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
                 let _ = Cli::create_folder(&full_path, &new_folder_name);
                 content_widget.request_sub_items(&content_widget.list_state.selected());
+
+                self.action_state = ContextMenuActionState::Unknown;
             },
             ContextMenuActionState::RenameInput => {
                 if self.action_state_context.is_empty() {
@@ -209,7 +215,9 @@ impl ContextMenuWidget {
                 let new_name = &self.action_state_context.replace(" ", "_");
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
                 let _ = Cli::rename(&full_path, &new_name);
-                content_widget.refresh_items();
+                content_widget.request_refresh_items();
+
+                self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::UploadInput => {
                 if self.action_state_context.is_empty() {
@@ -219,7 +227,9 @@ impl ContextMenuWidget {
                 let source = &self.action_state_context.replace(" ", "_");
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
                 let _ = Cli::upload(&full_path, &source);
-                content_widget.refresh_items();
+                content_widget.request_sub_items(&content_widget.list_state.selected());
+
+                self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::DownloadInput => {
                 if self.action_state_context.is_empty() {
@@ -229,43 +239,71 @@ impl ContextMenuWidget {
                 let destination = &self.action_state_context;
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
                 let _ = Cli::download(&full_path, &destination);
+
+                self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::Deletion => {
-                // TODO needs the file/folder name not the uid
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
                 let _ = Cli::delete(&full_path);
-                content_widget.refresh_items();
+                content_widget.request_refresh_items();
+
+                self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::Trashing => {
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
                 let _ = Cli::trash(&full_path);
-                content_widget.refresh_items();
+                content_widget.request_refresh_items();
+
+                self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::Restoration => {
-                // TODO needs the file/folder name not the uid
                 let full_path = content_widget.full_path(&content_widget.list_state.selected());
                 let _ = Cli::restore(&full_path);
-                content_widget.refresh_items();
+                content_widget.request_refresh_items();
+
+                self.action_state = ContextMenuActionState::Unknown;
             }
             ContextMenuActionState::TrashCleaning => {
                 let _ = Cli::empty_trash();
-                content_widget.refresh_items();
-            }
-            ContextMenuActionState::MovePlace => {
+                content_widget.request_refresh_items();
 
+                self.action_state = ContextMenuActionState::Unknown;
             }
-            ContextMenuActionState::CopyPaste => {
+            ContextMenuActionState::Paste => {
+                let source_path = &self.action_state_context;
+                let target_path = content_widget.full_path(&content_widget.list_state.selected());
+                let _ = Cli::paste_to(&source_path, &target_path);
+                content_widget.request_refresh_items();
 
+                self.action_state = ContextMenuActionState::Unknown;
+            }
+            ContextMenuActionState::Place => {
+                let source_path = &self.action_state_context;
+                let target_path = content_widget.full_path(&content_widget.list_state.selected());
+                let _ = Cli::move_to(&source_path, &target_path);
+                content_widget.request_refresh_items();
+
+                self.action_state = ContextMenuActionState::Unknown;
             }
             _ => {}
         }
 
-        self.action_state = ContextMenuActionState::Unknown;
-
     }
 
-    pub fn render(&mut self, frame: &mut Frame, area: Rect, content_widget: &ContentWidget) {
+    pub fn render(
+        &mut self,
+        frame: &mut Frame,
+        area: Rect,
+        context_menu_state: &mut bool,
+        content_widget: &ContentWidget
+    ) {
         self.menu = ContextMenu::find(&self, &content_widget, &content_widget.list_state);
+
+        if self.menu == ContextMenu::Unknown {
+            *context_menu_state = false;
+
+            return;
+        }
 
         let widget = List::new(self.menu.items().iter().map(|item| item.name()).collect::<Vec<String>>())
             .block(Block::default().title(" Actions ").borders(Borders::NONE))
@@ -291,12 +329,14 @@ impl ContextMenuWidget {
         &mut self,
         loading_state: &mut bool,
         context_menu_state: &mut bool,
-        context_menu_input_state: &mut bool
+        context_menu_input_state: &mut bool,
+        content_widget: &ContentWidget
     ) {
         let items = self.menu.items();
         let item = items
             .get(self.list_state.selected().unwrap_or_default())
             .unwrap_or(&ContextMenuItem::Unknown);
+        let content_state = content_widget.list_state.selected().unwrap_or_default();
 
         *context_menu_state = false;
 
@@ -324,10 +364,26 @@ impl ContextMenuWidget {
                 self.action_state = ContextMenuActionState::Restoration;
             }
             ContextMenuItem::Copy => {
-
+                self.action_state = ContextMenuActionState::ReadyToPaste;
+                let full_path = content_widget.full_path(&content_widget.list_state.selected());
+                self.action_state_context = full_path;
             }
             ContextMenuItem::Move => {
-
+                self.action_state = ContextMenuActionState::ReadyToPlace;
+                let full_path = content_widget.full_path(&content_widget.list_state.selected());
+                self.action_state_context = full_path;
+            }
+            ContextMenuItem::Paste => {
+                *loading_state = true;
+                self.action_state = ContextMenuActionState::Paste;
+            }
+            ContextMenuItem::Place => {
+                *loading_state = true;
+                self.action_state = ContextMenuActionState::Place;
+            }
+            ContextMenuItem::Cancel => {
+                self.action_state = ContextMenuActionState::Unknown;
+                self.action_state_context = "".to_string();
             }
             _ => {}
         }

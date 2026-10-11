@@ -17,4 +17,16 @@ impl ListWidget {
 
         list_state.select(Some(new));
     }
+
+    pub fn last(total: &usize, list_state: &mut ListState) {
+        let new = total - 1;
+
+        list_state.select(Some(new));
+    }
+
+    pub fn first(list_state: &mut ListState) {
+        let new = 0;
+
+        list_state.select(Some(new));
+    }
 }

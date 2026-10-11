@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use strum_macros::EnumIter;
 use crate::config::Config;
 
@@ -46,7 +46,9 @@ impl KeyBind {
         Self::is_nav_down(key_event) ||
         Self::is_nav_up(key_event) ||
         Self::is_nav_right(key_event) ||
-        Self::is_nav_left(key_event)
+        Self::is_nav_left(key_event) ||
+        Self::is_nav_pageup(key_event) ||
+        Self::is_nav_pagedown(key_event)
     }
 
     pub fn is_nav_down(key_event: &KeyEvent) -> bool {
@@ -63,5 +65,15 @@ impl KeyBind {
 
     pub fn is_nav_left(key_event: &KeyEvent) -> bool {
         key_event.code == KeyCode::Char('h') || key_event.code == KeyCode::Left
+    }
+
+    pub fn is_nav_pageup(key_event: &KeyEvent) -> bool {
+        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('u')) || 
+        key_event.code == KeyCode::PageUp
+    }
+
+    pub fn is_nav_pagedown(key_event: &KeyEvent) -> bool {
+        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('d')) ||
+        key_event.code == KeyCode::PageDown
     }
 }

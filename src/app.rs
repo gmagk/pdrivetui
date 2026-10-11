@@ -100,7 +100,7 @@ impl App {
                 &mut self.context_menu_widget,
                 &mut self.context_menu_input_widget,
                 &mut self.loading_state,
-                & self.context_menu_state,
+                &mut self.context_menu_state,
                 & self.context_menu_input_state
             );
         });
@@ -115,7 +115,7 @@ fn render(
     context_menu_widget: &mut ContextMenuWidget,
     context_menu_input_widget: &mut ContextMenuInputWidget,
     loading_state: &mut bool,
-    context_menu_state: & bool,
+    context_menu_state: &mut bool,
     context_menu_input_state: & bool
 ) {
     content_and_details(frame, content_widget, details_widget);
@@ -125,7 +125,7 @@ fn render(
     }
 
     if *context_menu_state {
-        context_menu_popup(frame, content_widget, context_menu_widget)
+        context_menu_popup(frame, context_menu_state, content_widget, context_menu_widget)
     }
 
     if *context_menu_input_state {
@@ -156,7 +156,8 @@ fn action(app: &mut App) {
         app.context_menu_widget.action(
             &mut app.loading_state,
             &mut app.context_menu_state,
-            &mut app.context_menu_input_state
+            &mut app.context_menu_input_state,
+            &mut app.content_widget
         );
     } else {
         app.content_widget.action(&mut app.context_menu_state);
@@ -186,8 +187,6 @@ fn clear(app: &mut App) {
         app.context_menu_widget.reset();
         app.context_menu_state = false;
     }
-
-    // TODO add any other popup which requires manual hiding
 }
 
 fn content_and_details(
@@ -217,6 +216,7 @@ fn loading_popup(frame: &mut Frame, loading_widget: &mut LoadingWidget) {
 
 fn context_menu_popup(
     frame: &mut Frame,
+    context_menu_state: &mut bool,
     content_widget: &mut ContentWidget,
     context_menu_widget: &mut ContextMenuWidget
 ) {
@@ -229,7 +229,7 @@ fn context_menu_popup(
         ])
         .split(frame.area())[1];
 
-    context_menu_widget.render(frame, area, &content_widget);
+    context_menu_widget.render(frame, area, context_menu_state, &content_widget);
 }
 
 fn context_menu_input_popup(

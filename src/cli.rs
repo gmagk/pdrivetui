@@ -1,15 +1,13 @@
+use crate::dto::{ListElement, TopDir};
+use serde::de::DeserializeOwned;
 use std::io::Error;
 use std::process::Command;
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-use crate::dto::{ListElement, TopDir};
 
 pub struct Cli {}
 
 impl Cli {
 
-    const BASE: &str = "proton-drive";
-    const FS: &str = "filesystem";
+    // TODO fix return types from service calls
 
     pub fn list_top() -> Result<Vec<TopDir>, Error> {
         Self::action("list /".to_string())
@@ -47,12 +45,21 @@ impl Cli {
         Self::action(format!("restore {}", path))
     }
 
+    pub fn paste_to(source_path: &String, target_path: &String) -> Result<Vec<TopDir>, Error> {
+        eprintln!("{} --- {}", source_path, target_path);
+        Self::action(format!("copy {} {}", source_path, target_path))
+    }
+
+    pub fn move_to(source_path: &String, target_path: &String) -> Result<Vec<TopDir>, Error> {
+        Self::action(format!("move {} {}", source_path, target_path))
+    }
+
     pub fn empty_trash() -> Result<Vec<TopDir>, Error> {
         Self::action("empty-trash".to_string())
     }
 
     pub fn action<T: DeserializeOwned>(subcommand: String) -> Result<T, Error> {
-        Self::json_to_response::<T>(Self::exec(format!("{} {} {} --json", Self::BASE, Self::FS, subcommand)))
+        Self::json_to_response::<T>(Self::exec(format!("proton-drive filesystem {} --json", subcommand)))
     }
 
     fn exec(command: String) -> Vec<String> {

@@ -81,6 +81,10 @@ impl ContentWidget {
             ListWidget::next(&self.content.len(), &mut self.list_state);
         } else if KeyBind::is_nav_up(&key_event) {
             ListWidget::previous(&mut self.list_state);
+        } else if KeyBind::is_nav_pagedown(&key_event) {
+            ListWidget::last(&self.content.len(), &mut self.list_state);
+        } else if KeyBind::is_nav_pageup(&key_event) {
+            ListWidget::first(&mut self.list_state);
         } else if KeyBind::is_nav_right(&key_event) {
             *loading_state = true;
             self.action_state = ContentListActionState::RequestSubItems;
@@ -157,9 +161,16 @@ impl ContentWidget {
         }
     }
 
-    pub fn refresh_items(&mut self) {
+    pub fn request_refresh_items(&mut self) {
         let mut path = String::new();
 
+        // top level
+        if self.parents.is_empty() {
+            self.request_top_items();
+            return;
+        }
+
+        // sublevel
         self.parents.iter().for_each(|list_element: &ListElement| {
             if list_element.is_top_dir {
                 path += list_element.top_dir_path.as_str();

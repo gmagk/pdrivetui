@@ -1,11 +1,11 @@
-use crate::widget::context_menu_input_widget::ContextMenuInput::{DownloadDestination, NewSubFolder, NewName, Unknown, UploadSource};
+use crate::widget::context_menu_input_widget::ContextMenuInput::{DownloadDestination, NewName, NewSubFolder, Unknown, UploadSource};
 use crate::widget::context_menu_widget::{ContextMenuActionState, ContextMenuItem, ContextMenuWidget};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::Stylize;
 use ratatui::symbols::border;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, ListState, Paragraph};
+use ratatui::widgets::{Block, Paragraph};
 use tui_input::Input;
 
 #[derive(Default)]
