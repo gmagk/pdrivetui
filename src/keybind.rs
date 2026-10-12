@@ -11,14 +11,6 @@ pub enum KeyBind {
 
 impl KeyBind {
 
-    pub fn name(&self) -> String {
-        match self {
-            Self::Quit => String::from("Quit"),
-            Self::Keybindings => String::from("Keybindings"),
-            _ => String::from("Unknown")
-        }
-    }
-
     pub fn value(&self, config: &Config) -> String {
         match self {
             Self::Quit => config.keybindings.quit.clone(),
@@ -28,37 +20,37 @@ impl KeyBind {
     }
 
     pub fn is_navigation(key_event: &KeyEvent) -> bool {
-        Self::is_nav_down(key_event) ||
-        Self::is_nav_up(key_event) ||
-        Self::is_nav_right(key_event) ||
-        Self::is_nav_left(key_event) ||
-        Self::is_nav_pageup(key_event) ||
-        Self::is_nav_pagedown(key_event)
+        Self::is_down(key_event) ||
+        Self::is_up(key_event) ||
+        Self::is_right(key_event) ||
+        Self::is_left(key_event) ||
+        Self::is_pagedown(key_event) ||
+        Self::is_pageup(key_event)
     }
 
-    pub fn is_nav_down(key_event: &KeyEvent) -> bool {
+    pub fn is_down(key_event: &KeyEvent) -> bool {
         key_event.code == KeyCode::Char('j') || key_event.code == KeyCode::Down
     }
 
-    pub fn is_nav_up(key_event: &KeyEvent) -> bool {
+    pub fn is_up(key_event: &KeyEvent) -> bool {
         key_event.code == KeyCode::Char('k') || key_event.code == KeyCode::Up
     }
 
-    pub fn is_nav_right(key_event: &KeyEvent) -> bool {
+    pub fn is_right(key_event: &KeyEvent) -> bool {
         key_event.code == KeyCode::Char('l') || key_event.code == KeyCode::Right
     }
 
-    pub fn is_nav_left(key_event: &KeyEvent) -> bool {
+    pub fn is_left(key_event: &KeyEvent) -> bool {
         key_event.code == KeyCode::Char('h') || key_event.code == KeyCode::Left
     }
 
-    pub fn is_nav_pageup(key_event: &KeyEvent) -> bool {
-        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('u')) ||
-        key_event.code == KeyCode::PageUp
+    pub fn is_pagedown(key_event: &KeyEvent) -> bool {
+        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('d')) ||
+            key_event.code == KeyCode::PageDown
     }
 
-    pub fn is_nav_pagedown(key_event: &KeyEvent) -> bool {
-        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('d')) ||
-        key_event.code == KeyCode::PageDown
+    pub fn is_pageup(key_event: &KeyEvent) -> bool {
+        (key_event.modifiers.contains(KeyModifiers::CONTROL) && key_event.code == KeyCode::Char('u')) ||
+        key_event.code == KeyCode::PageUp
     }
 }

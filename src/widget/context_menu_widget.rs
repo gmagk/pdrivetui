@@ -311,9 +311,9 @@ impl ContextMenuWidget {
     }
 
     pub fn navigation(&mut self, key_event: &KeyEvent) {
-        if KeyBind::is_nav_down(&key_event) {
+        if KeyBind::is_down(&key_event) {
             ListWidget::next(&self.menu.items().len(), &mut self.list_state);
-        } else if KeyBind::is_nav_up(&key_event) {
+        } else if KeyBind::is_up(&key_event) {
             ListWidget::previous(&mut self.list_state);
         }
     }

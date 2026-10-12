@@ -5,14 +5,14 @@ use std::path::Path;
 use std::fs;
 use strum::IntoEnumIterator;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Config {
     #[serde(default)]
     pub keybindings: KeyBindings
 
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct KeyBindings {
     #[serde(default)]
     pub unknown: String,

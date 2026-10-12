@@ -14,18 +14,18 @@ keybindings = "?"
 
 ### Keybindings
 
-| action      | key               | usage                                                        | configurable |
-|-------------|-------------------|--------------------------------------------------------------|--------------|
-| quit        | Ctrl+q            | close app                                                    | *            |
-| keybindings | ?                 | list keybindings                                             | *            |
-| move down   | j / arrow down    | navigate contents list, context menu                         |              |
-| move up     | k / arrow up      | navigate contents list, context menu                         |              |
-| move right  | l / arrow right   | navigate (go 1 level down) contents list                     |              |
-| move left   | h / arrow left    | navigate (go 1 level up) contents list                       |              |
-| page down   | Ctrl+d / PageDown | navigate (go to bottom) contents list, context menu          |              |
-| page up     | Ctrl+u / PageUp   | navigate (go to top) contents list, context menu             |              |
-| select      | Enter             | open context menu, select context menu action, submit prompt |              |
-| close       | Esc               | close context menu, prompt                                   |              |
+| action      | key               | usage                                                                | configurable |
+|-------------|-------------------|----------------------------------------------------------------------|--------------|
+| quit        | Ctrl+q            | close app                                                            | *            |
+| keybindings | ?                 | list keybindings                                                     | *            |
+| move down   | j / Down          | navigate contents list, context menu                                 |              |
+| move up     | k / Up            | navigate contents list, context menu                                 |              |
+| move right  | l / Right         | navigate (go 1 level down) contents list                             |              |
+| move left   | h / Left          | navigate (go 1 level up) contents list                               |              |
+| page down   | Ctrl+d / PageDown | navigate (go to bottom) contents list, context menu                  |              |
+| page up     | Ctrl+u / PageUp   | navigate (go to top) contents list, context menu                     |              |
+| select      | Enter             | open context menu, select context menu action, submit prompt, e.t.c. |              |
+| close       | Esc               | close context menu, prompt, e.t.c.                                   |              |
 
 
 ### Naming

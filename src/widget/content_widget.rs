@@ -77,18 +77,18 @@ impl ContentWidget {
 
     pub fn navigation(&mut self, key_event: &KeyEvent, loading_state: &mut bool) {
         self.action_state = ContentListActionState::Unknown;
-        if KeyBind::is_nav_down(&key_event) {
+        if KeyBind::is_down(&key_event) {
             ListWidget::next(&self.content.len(), &mut self.list_state);
-        } else if KeyBind::is_nav_up(&key_event) {
+        } else if KeyBind::is_up(&key_event) {
             ListWidget::previous(&mut self.list_state);
-        } else if KeyBind::is_nav_pagedown(&key_event) {
+        } else if KeyBind::is_pagedown(&key_event) {
             ListWidget::last(&self.content.len(), &mut self.list_state);
-        } else if KeyBind::is_nav_pageup(&key_event) {
+        } else if KeyBind::is_pageup(&key_event) {
             ListWidget::first(&mut self.list_state);
-        } else if KeyBind::is_nav_right(&key_event) {
+        } else if KeyBind::is_right(&key_event) {
             *loading_state = true;
             self.action_state = ContentListActionState::RequestSubItems;
-        } else if KeyBind::is_nav_left(&key_event) {
+        } else if KeyBind::is_left(&key_event) {
             *loading_state = true;
             self.action_state = ContentListActionState::RequestSuperItems;
         }

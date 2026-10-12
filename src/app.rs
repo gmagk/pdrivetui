@@ -18,6 +18,7 @@ pub struct App {
     terminal: DefaultTerminal,
     details_widget: DetailsWidget,
     content_widget: ContentWidget,
+    keybindings_widget: KeybindingsWidget,
     context_menu_widget: ContextMenuWidget,
     context_menu_input_widget: ContextMenuInputWidget,
     keybindings_state: bool,
@@ -29,11 +30,14 @@ pub struct App {
 impl App {
 
     pub fn new(config: Config, terminal: DefaultTerminal) -> Self {
+        let config_clone = config.clone();
+
         Self {
             config,
             terminal,
             content_widget: ContentWidget::default(),
             details_widget: DetailsWidget::default(),
+            keybindings_widget: KeybindingsWidget::new(&config_clone),
             context_menu_widget: ContextMenuWidget::default(),
             context_menu_input_widget: ContextMenuInputWidget::default(),
             keybindings_state: false,
@@ -84,6 +88,7 @@ impl App {
                 // navigation
                 if KeyBind::is_navigation(&key_event) {
                     navigation(self, &key_event);
+                    continue;
                 }
 
                 // keybindings
@@ -103,6 +108,7 @@ impl App {
                 frame,
                 &mut self.content_widget,
                 &mut self.details_widget,
+                & self.keybindings_widget,
                 &mut self.context_menu_widget,
                 &mut self.context_menu_input_widget,
                 &mut self.keybindings_state,
@@ -118,6 +124,7 @@ fn render(
     frame: &mut Frame,
     content_widget: &mut ContentWidget,
     details_widget: &mut DetailsWidget,
+    keybindings_widget: &KeybindingsWidget,
     context_menu_widget: &mut ContextMenuWidget,
     context_menu_input_widget: &mut ContextMenuInputWidget,
     keybindings_state: &mut bool,
@@ -128,7 +135,7 @@ fn render(
     content_and_details(frame, content_widget, details_widget);
 
     if *keybindings_state {
-        keybindings_popup(frame);
+        keybindings_popup(frame, &keybindings_widget);
     }
 
     if *loading_state {
@@ -220,12 +227,12 @@ fn content_and_details(
     details_widget.render(frame, area[1]);
 }
 
-fn keybindings_popup(frame: &mut Frame) {
+fn keybindings_popup(frame: &mut Frame, keybindings_widget: &KeybindingsWidget) {
     let area = frame
         .area()
-        .centered(Constraint::Percentage(50), Constraint::Percentage(50));
+        .centered(Constraint::Percentage(80), Constraint::Percentage(50));
 
-    KeybindingsWidget::render(frame, area);
+    keybindings_widget.render(frame, area);
 }
 
 fn loading_popup(frame: &mut Frame) {
