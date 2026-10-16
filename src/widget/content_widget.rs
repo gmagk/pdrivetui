@@ -1,14 +1,13 @@
-use url::Url;
+use crate::dto::{ListElement, TopDir, Type};
+use crate::keybind::KeyBind;
+use crate::service::Service;
+use crate::widget::list_widget::ListWidget;
 use crossterm::event::KeyEvent;
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use crate::service::Service;
-use crate::dto::{ListElement, TopDir, Type};
 use ratatui::prelude::Style;
 use ratatui::style::{Color, Modifier};
 use ratatui::widgets::{Block, Borders, List, ListState};
-use crate::keybind::KeyBind;
-use crate::widget::list_widget::ListWidget;
 
 #[derive(Default, PartialEq)]
 enum ContentListActionState {
@@ -21,7 +20,6 @@ enum ContentListActionState {
 #[derive(Default)]
 pub struct ContentWidget {
     pub content: Vec<ListElement>,
-    pub parents: Vec<ListElement>,
     pub list_state: ListState,
     action_state: ContentListActionState
 }
@@ -31,12 +29,22 @@ impl ContentWidget {
     pub fn check_state(&mut self) {
         match self.action_state {
             ContentListActionState::RequestSubItems => {
-                self.request_sub_items(& self.list_state.selected());
-                self.list_state.select(Some(0));
+                self.request_sub_items();
             },
             ContentListActionState::RequestSuperItems => {
-                self.request_super_items();
-                self.list_state.select(Some(0));
+                let current_element = self.selected();
+
+                if current_element.is_top() {
+                    return;
+                }
+
+                let parent = current_element.parent();
+
+                if parent.is_top() {
+                    self.request_top_items()
+                } else {
+                    self.request_super_items();
+                }
             },
             _ => {}
         }
@@ -45,25 +53,12 @@ impl ContentWidget {
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let print_values: Vec<String>;
-        if self.parents.is_empty() {
-            print_values = self.content
-                .iter()
-                .map(|list_element: &ListElement| list_element.top_dir_path.clone())
-                .collect::<Vec<String>>()
-        } else {
-            print_values = self.content
-                .iter()
-                .map(|list_element: &ListElement| {
-                    if list_element.name.ok {
-                        list_element.name.value.clone()
-                    } else {
-                        String::new()
-                    }
-                }).collect::<Vec<String>>()
-        }
+        let items = self.content
+            .iter()
+            .map(|list_element: &ListElement| list_element.name.clone())
+            .collect::<Vec<String>>();
 
-        let widget = List::new(print_values)
+        let widget = List::new(items)
             .block(Block::default().title(" Contents ").borders(Borders::ALL))
             .style(Style::new().white().on_black())
             .highlight_style(Style::default()
@@ -73,6 +68,12 @@ impl ContentWidget {
             );
 
         frame.render_stateful_widget(widget, area, &mut self.list_state);
+    }
+
+    pub fn selected(&self) -> &ListElement {
+        let index = self.list_state.selected().unwrap_or_default();
+
+        self.content.get(index).unwrap()
     }
 
     pub fn navigation(&mut self, key_event: &KeyEvent, loading_state: &mut bool) {
@@ -98,117 +99,80 @@ impl ContentWidget {
         *context_menu_state = true
     }
 
-    // converts TopDir DTOs to ListElements for unified later handling
     pub fn request_top_items(&mut self) {
         let result = Service::list_top().unwrap_or_default();
-        self.content = Vec::new();
-        self.parents = Vec::new();
-        let _ = result
+
+        let result_as_list_element = result
             .iter()
-            .for_each(|top_dir: &TopDir| {
+            .map(|top_dir: &TopDir| {
                 let mut list_element = ListElement::default();
-                list_element.is_top_dir = true;
-                list_element.top_dir_path = top_dir.path.clone();
-                self.content.push(list_element);
-            });
+                list_element.name = top_dir.path.clone();
+
+                // proton does not return any property for top directories other than `path`
+                list_element.TYPE = Type::Folder;
+
+                list_element
+            }).collect::<Vec<ListElement>>();
+
+        self.content = Self::parse_request_result(result_as_list_element, &None);
+        self.list_state.select(Some(0));
     }
 
     // this should not be called for the root dir (/)
-    pub fn request_sub_items(&mut self, selected_index: &Option<usize>) {
-        let index = selected_index.unwrap_or(0);
-        let empty_element = ListElement::default();
-        let list_element = self.content.get(index).unwrap_or(&empty_element);
+    pub fn request_sub_items(&mut self) {
+        let current_element = self.selected();
 
-        if !list_element.is_top_dir && list_element.type_ != Type::Folder {
+        if current_element.is_empty || current_element.TYPE != Type::Folder {
             return;
         }
 
-        let mut path: String;
-        if list_element.is_top_dir {
-            self.parents = vec![list_element.clone()];
-
-            path = list_element.top_dir_path.clone();
-        } else {
-            self.parents.push(list_element.clone());
-
-            path = self.parents[0].top_dir_path.clone();
-            self.parents.iter().skip(1).for_each(|list_element: &ListElement| {
-                path += "/";
-                path += list_element.name.value.as_str();
-            });
+        let mut result = Service::list_dir(&current_element.path()).unwrap_or_default();
+        if result.is_empty() {
+            result = vec![ListElement::empty()];
         }
 
-        self.content = Service::list_dir(&path).unwrap_or_default();
+        self.content = Self::parse_request_result(result, &Some(Box::new(current_element.clone())));
+        self.list_state.select(Some(0));
     }
 
     pub fn request_super_items(&mut self) {
-        if self.parents.is_empty() {
+        let current_element = self.selected();
+
+        if current_element.is_top() {
             return;
         }
 
-        self.parents.pop();
+        let parent = current_element.parent();
 
-        if self.parents.is_empty() {
-            self.request_top_items()
-        } else {
-            let mut path = self.parents[0].top_dir_path.clone();
-            self.parents.iter().skip(1).for_each(|list_element: &ListElement| {
-                path += "/";
-                path += list_element.name.value.as_str();
-            });
-
-            self.content = Service::list_dir(&path).unwrap_or_default();
+        if parent.is_top() { // Should be checked and handled by the caller
+            return;
         }
+
+        let path = parent.parent().path();
+        let result = Service::list_dir(&path).unwrap_or_default();
+
+        self.content = Self::parse_request_result(result, &parent.parent);
+        self.list_state.select(Some(0));
     }
 
     pub fn request_refresh_items(&mut self) {
-        let mut path = String::new();
+        let current_element = self.selected();
+        let path = if current_element.is_top() { "/".to_string() } else { current_element.parent().path() };
 
-        // top level
-        if self.parents.is_empty() {
-            self.request_top_items();
-            return;
-        }
+        let result = Service::list_dir(&path).unwrap_or_default();
 
-        // sublevel
-        self.parents.iter().for_each(|list_element: &ListElement| {
-            if list_element.is_top_dir {
-                path += list_element.top_dir_path.as_str();
-            } else {
-                path += "/";
-                path += list_element.name.value.as_str();
-            }
-        });
-
-        self.content = Service::list_dir(&path).unwrap_or_default();
+        let parent = if current_element.is_top() { None } else { current_element.parent.clone() };
+        self.content = Self::parse_request_result(result, &parent);
     }
 
-    pub fn full_path(&self, selected_index: &Option<usize>) -> String {
-        let index = selected_index.unwrap_or(0);
-        let mut path = String::new();
-        let empty_element = &ListElement::default();
-        let element = self.content.get(index).unwrap_or(empty_element);
+    fn parse_request_result(result: Vec<ListElement>, parent: &Option<Box<ListElement>>) -> Vec<ListElement> {
+        result
+            .iter()
+            .map(|list_element: &ListElement| {
+                let mut el = list_element.clone();
+                el.parent = parent.clone();
 
-        // top level
-        if self.parents.is_empty() {
-            return element.top_dir_path.clone();
-        }
-
-        // sublevel
-        self.parents.iter().for_each(|parent: &ListElement| {
-            let mut p = String::new();
-            if parent.is_top_dir {
-                p += parent.top_dir_path.to_string().as_str();
-            } else {
-                p += "/";
-                p += parent.name.value.as_str();
-            }
-            path += p.as_str();
-        });
-
-        path += "/";
-        path += self.content.get(index).unwrap_or(&empty_element).name.value.as_str();
-
-        path
+                el
+            }).collect::<Vec<ListElement>>()
     }
 }

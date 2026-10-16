@@ -6,7 +6,7 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Padding, Row, Table};
 
 pub struct KeybindingsWidget {
-    content: Vec<Content>
+    content: [Content; 10]
 }
 
 struct Content {
@@ -20,7 +20,7 @@ impl KeybindingsWidget {
 
     pub fn new(config: &Config) -> Self {
         Self {
-            content: vec![
+            content: [
                 Content {
                     key: String::from("quit"),
                     binding: String::from(config.keybindings.quit.clone()),

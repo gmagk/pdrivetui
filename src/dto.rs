@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::str::FromStr;
 
 #[derive(Default, Clone, PartialEq, Serialize, Deserialize)]
@@ -34,7 +34,6 @@ impl Default for TopDir {
     }
 }
 
-
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)] // automatically use a default value when none is present in the data
 pub struct OkValue {
@@ -56,13 +55,15 @@ pub struct ListElement {
     #[serde(rename = "parentUid")]
     pub parent_uid: String,
 
-    pub name: OkValue,
+    // proton returns this as OkValue struct
+    #[serde(deserialize_with = "ListElement::deserialize_name")]
+    pub name: String,
 
     #[serde(rename = "ownedBy")]
     pub owned_by: OwnedBy,
 
     #[serde(rename = "type")]
-    pub type_: Type,
+    pub TYPE: Type,
 
     #[serde(rename = "isShared")]
     pub is_shared: bool,
@@ -80,9 +81,57 @@ pub struct ListElement {
     #[serde(rename = "totalStorageSize")]
     pub total_storage_size: u64,
 
-    // for top directories
-    pub is_top_dir: bool,
-    pub top_dir_path: String,
+    // returned by Proton only on top directories
+    pub path: String,
 
-    pub nesting_level: i8
+    pub parent: Option<Box<ListElement>>,
+
+    pub is_empty: bool
+}
+
+impl ListElement {
+
+    pub fn is_top(&self) -> bool {
+        self.parent.is_none()
+    }
+
+    pub fn path(&self) -> String {
+        let mut path = self.name.clone();
+        let parent_opt = self.parent.as_ref();
+
+        if parent_opt.is_none() {
+            return path;
+        }
+
+        path = parent_opt.unwrap().path() + "/" + path.as_str();
+
+        path
+    }
+
+    pub fn parent(&self) -> ListElement {
+        if self.parent.is_none() {
+            ListElement::default()
+        } else {
+            let p = self.parent.as_ref().unwrap();
+            p.as_ref().clone()
+        }
+    }
+
+    pub fn empty() -> ListElement {
+        let mut el = ListElement::default();
+        el.name = "<empty>".to_string();
+        el.is_empty = true;
+
+        el
+    }
+
+    pub fn deserialize_name<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let ok_value = OkValue::deserialize(deserializer)?;
+
+        Ok(if ok_value.ok { ok_value.value.to_string() } else { "".to_string() })
+    }
+
 }

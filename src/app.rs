@@ -217,7 +217,7 @@ fn content_and_details(
 ) {
     let area = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(vec![
+        .constraints([
             Constraint::Percentage(50),
             Constraint::Percentage(50),
         ])

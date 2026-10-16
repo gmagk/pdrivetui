@@ -5,6 +5,7 @@ mod config;
 mod keybind;
 mod widget;
 mod cli;
+mod path;
 
 use crate::app::App;
 use clap::Parser;
@@ -16,9 +17,6 @@ const APP_NAME: &str = "pdrivetui";
 const VERSION: &str = "1.0.0-alpha.1";
 
 fn main() -> io::Result<()> {
-    // // Calling parse() makes Clap work
-    // Help::parse();
-
     let terminal = ratatui::init();
     let cli = Cli::parse();
     let cli_config = cli.conf_file.as_path().to_str().unwrap();

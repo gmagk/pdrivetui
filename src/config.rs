@@ -8,26 +8,61 @@ use strum::IntoEnumIterator;
 #[derive(Deserialize, Clone)]
 pub struct Config {
     #[serde(default)]
-    pub keybindings: KeyBindings
+    pub keybindings: KeyBindings,
 
+    #[serde(default)]
+    pub strategy: Strategy
 }
 
 #[derive(Deserialize, Clone)]
 pub struct KeyBindings {
-    #[serde(default)]
-    pub unknown: String,
-
     pub quit: String,
     pub keybindings: String
 }
 
-impl Default for KeyBindings {
+#[derive(Deserialize, Clone)]
+pub struct Strategy {
+    pub upload_file: String,
+    pub upload_folder: String,
+    pub download_file: String,
+    pub download_folder: String
+}
 
+#[derive(Deserialize, Clone)]
+pub enum StrategyScope {
+    UploadFile,
+    UploadFolder,
+    DownloadFile,
+    DownloadFolder
+}
+
+impl Default for KeyBindings {
     fn default() -> Self {
         KeyBindings {
             quit: "Ctrl+q".to_string(),
-            keybindings: "?".to_string(),
-            unknown: String::new()
+            keybindings: "?".to_string()
+        }
+    }
+}
+
+impl Default for Strategy {
+    fn default() -> Self {
+        Strategy {
+            upload_file: "create-new-revision".to_string(),
+            upload_folder: "merge".to_string(),
+            download_file: "rename".to_string(),
+            download_folder: "merge".to_string()
+        }
+    }
+}
+
+impl Strategy {
+    fn find(&self, scope: StrategyScope) -> String {
+        match scope {
+            StrategyScope::UploadFile => self.upload_file.clone(),
+            StrategyScope::UploadFolder => self.upload_folder.clone(),
+            StrategyScope::DownloadFile => self.download_file.clone(),
+            StrategyScope::DownloadFolder => self.download_folder.clone()
         }
     }
 }
@@ -42,7 +77,8 @@ impl Config {
         }
 
         Config {
-            keybindings: KeyBindings::default()
+            keybindings: KeyBindings::default(),
+            strategy: Strategy::default()
         }
     }
 
@@ -79,6 +115,10 @@ impl Config {
         KeyBind::Unknown
     }
 
+    pub fn find_strategy() {
+
+    }
+
     fn from_toml(path: &str) -> Config {
         let contents = fs::read_to_string(path)
             .unwrap_or_else(|e| {
@@ -89,7 +129,8 @@ impl Config {
         toml::from_str(&contents).unwrap_or_else(|e| {
             eprintln!("Failed to parse config, using defaults: {e}");
             Config {
-                keybindings: KeyBindings::default()
+                keybindings: KeyBindings::default(),
+                strategy: Strategy::default()
             }
         })
     }

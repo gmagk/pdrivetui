@@ -30,8 +30,7 @@ impl ContextMenuInput {
     }
 
     pub fn find(context_menu_widget: &ContextMenuWidget) -> Self {
-        let context_menu_selected_index = context_menu_widget.list_state.selected().unwrap_or_default();
-        let context_menu_selected_item = &context_menu_widget.menu.items()[context_menu_selected_index].clone();
+        let context_menu_selected_item = context_menu_widget.selected();
 
         match context_menu_selected_item {
             ContextMenuItem::CreateFolder => NewSubFolder,
