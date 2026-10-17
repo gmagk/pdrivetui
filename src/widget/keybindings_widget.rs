@@ -3,7 +3,7 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::{Color, Style, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Padding, Row, Table};
+use ratatui::widgets::{Block, Borders, Clear, Padding, Row, Table};
 
 pub struct KeybindingsWidget {
     content: [Content; 10]
@@ -85,7 +85,7 @@ impl KeybindingsWidget {
         }
     }
 
-    pub fn render(&self, frame: &mut Frame, area: Rect) {
+    pub fn render(&self, frame: &mut Frame) {
         let header_style = Style::new().fg(Color::Black);
         let headers = Row::new([
             Line::from(format!("  {}  ","action")).bold().style(header_style).left_aligned(),
@@ -105,6 +105,9 @@ impl KeybindingsWidget {
             ])
         });
 
+        let area = frame
+            .area()
+            .centered(Constraint::Percentage(80), Constraint::Percentage(50));
         let content_area = Layout::default()
             .direction(Direction::Vertical)
             .constraints([ Constraint::Length(15) ])
@@ -121,6 +124,7 @@ impl KeybindingsWidget {
             .style(Style::default().fg(Color::Gray).bg(Color::Gray))
             .column_spacing(0);
 
+        frame.render_widget(Clear, content_area);
         frame.render_widget(table, content_area);
     }
 }

@@ -135,19 +135,19 @@ fn render(
     content_and_details(frame, content_widget, details_widget);
 
     if *keybindings_state {
-        keybindings_popup(frame, &keybindings_widget);
+        keybindings_widget.render(frame);
     }
 
     if *loading_state {
-        loading_popup(frame);
+        LoadingWidget::render(frame);
     }
 
     if *context_menu_state {
-        context_menu_popup(frame, context_menu_state, content_widget, context_menu_widget)
+        context_menu_widget.render(frame, context_menu_state, &content_widget);
     }
 
     if *context_menu_input_state {
-        context_menu_input_popup(frame, context_menu_widget, context_menu_input_widget)
+        context_menu_input_widget.render(frame, &context_menu_widget);
     }
 }
 
@@ -225,55 +225,4 @@ fn content_and_details(
 
     content_widget.render(frame, area[0]);
     details_widget.render(frame, area[1]);
-}
-
-fn keybindings_popup(frame: &mut Frame, keybindings_widget: &KeybindingsWidget) {
-    let area = frame
-        .area()
-        .centered(Constraint::Percentage(80), Constraint::Percentage(50));
-
-    keybindings_widget.render(frame, area);
-}
-
-fn loading_popup(frame: &mut Frame) {
-    let area = frame
-        .area()
-        .centered(Constraint::Percentage(20), Constraint::Percentage(20));
-
-    LoadingWidget::render(frame, area);
-}
-
-fn context_menu_popup(
-    frame: &mut Frame,
-    context_menu_state: &mut bool,
-    content_widget: &mut ContentWidget,
-    context_menu_widget: &mut ContextMenuWidget
-) {
-    let area = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(20),
-            Constraint::Length(20),
-            Constraint::Fill(2)
-        ])
-        .split(frame.area())[1];
-
-    context_menu_widget.render(frame, area, context_menu_state, &content_widget);
-}
-
-fn context_menu_input_popup(
-    frame: &mut Frame,
-    context_menu_widget: &mut ContextMenuWidget,
-    context_menu_input_widget: &mut ContextMenuInputWidget
-) {
-    let area = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(20),
-            Constraint::Length(20),
-            Constraint::Fill(2)
-        ])
-        .split(frame.area())[2];
-
-    context_menu_input_widget.render(frame, area, &context_menu_widget);
 }

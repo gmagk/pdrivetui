@@ -1,11 +1,11 @@
 use crate::widget::context_menu_input_widget::ContextMenuInput::{DownloadDestination, NewName, NewSubFolder, Unknown, UploadSource};
 use crate::widget::context_menu_widget::{ContextMenuActionState, ContextMenuItem, ContextMenuWidget};
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Flex, Layout};
 use ratatui::style::Stylize;
 use ratatui::symbols::border;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::widgets::{Block, Clear, Paragraph};
 use tui_input::Input;
 
 #[derive(Default)]
@@ -50,9 +50,17 @@ pub struct ContextMenuInputWidget {
 
 impl ContextMenuInputWidget {
 
-    pub fn render(&mut self, frame: &mut Frame, area: Rect, context_menu_widget: &ContextMenuWidget) {
+    pub fn render(&mut self, frame: &mut Frame, context_menu_widget: &ContextMenuWidget) {
         self.menu_input = ContextMenuInput::find(&context_menu_widget);
 
+        let area = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Length(20),
+                Constraint::Length(20),
+                Constraint::Fill(2)
+            ])
+            .split(frame.area())[2];
         let [input_area] = Layout::horizontal([Constraint::Percentage(50)])
             .flex(Flex::Center)
             .areas(area);
@@ -69,6 +77,7 @@ impl ContextMenuInputWidget {
             .scroll((0, scroll as u16))
             .block(block);
 
+        frame.render_widget(Clear, input_area);
         frame.render_widget(widget, input_area);
 
         // Ratatui hides the cursor unless it's explicitly set. Position the  cursor past the

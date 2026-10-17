@@ -6,9 +6,10 @@ use crate::widget::content_widget::ContentWidget;
 use crate::widget::list_widget::ListWidget;
 use crossterm::event::KeyEvent;
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Offset, Rect};
 use ratatui::prelude::{Color, Modifier, Style};
-use ratatui::widgets::{Block, Borders, List, ListState};
+use ratatui::style::Stylize;
+use ratatui::widgets::{Block, Borders, Clear, List, ListState, Padding, Shadow};
 use strum::IntoEnumIterator;
 
 #[derive(Clone)]
@@ -204,7 +205,6 @@ impl ContextMenuWidget {
     pub fn render(
         &mut self,
         frame: &mut Frame,
-        area: Rect,
         context_menu_state: &mut bool,
         content_widget: &ContentWidget
     ) {
@@ -217,7 +217,7 @@ impl ContextMenuWidget {
         }
 
         let widget = List::new(self.items.iter().map(|item| item.name()).collect::<Vec<String>>())
-            .block(Block::default().title(" Actions ").borders(Borders::NONE))
+            .block(Block::default().borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM))
             .style(Style::new().white().on_black())
             .highlight_style(Style::default()
                 .add_modifier(Modifier::REVERSED)
@@ -225,6 +225,9 @@ impl ContextMenuWidget {
                 .bg(Color::DarkGray)
             );
 
+        let area = Rect::new(14, 1, 20, (self.items.len() + 1) as u16);
+
+        frame.render_widget(Clear, area);
         frame.render_stateful_widget(widget, area, &mut self.list_state);
     }
 
