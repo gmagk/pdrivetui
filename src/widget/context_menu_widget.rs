@@ -11,6 +11,7 @@ use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, Clear, List, ListState};
 use std::fmt::{Display, Formatter};
 use strum::IntoEnumIterator;
+use crate::config::Strategy;
 
 #[derive(Clone)]
 pub enum ContextMenuItem {
@@ -96,7 +97,7 @@ pub struct ContextMenuWidget {
 
 impl ContextMenuWidget {
 
-    pub fn check_state(&mut self, content_widget: &mut ContentWidget) {
+    pub fn check_state(&mut self, content_widget: &mut ContentWidget, strategy: &Strategy) {
 
         match self.action_state {
             ContextMenuActionState::CreateFolderInput => {
@@ -132,7 +133,7 @@ impl ContextMenuWidget {
                 let source = &self.action_state_context.replace(" ", "_");
                 let current_element = content_widget.selected();
 
-                let _ = Service::upload(&current_element.path(), &source);
+                let _ = Service::upload(&current_element.path(), &source, strategy);
                 content_widget.request_sub_items();
 
                 self.action_state = ContextMenuActionState::Unknown;
@@ -145,7 +146,7 @@ impl ContextMenuWidget {
                 let destination = &self.action_state_context;
                 let current_element = content_widget.selected();
 
-                let _ = Service::download(&current_element.path(), &destination);
+                let _ = Service::download(&current_element.path(), &destination, strategy);
 
                 self.action_state = ContextMenuActionState::Unknown;
             }
@@ -241,6 +242,10 @@ impl ContextMenuWidget {
             ListWidget::next(&self.items.len(), &mut self.list_state);
         } else if KeyBind::is_up(&key_event) {
             ListWidget::previous(&mut self.list_state);
+        } else if KeyBind::is_pagedown(&key_event) {
+            ListWidget::last(&self.items.len(), &mut self.list_state);
+        } else if KeyBind::is_pageup(&key_event) {
+            ListWidget::first(&mut self.list_state);
         }
     }
 

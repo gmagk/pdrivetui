@@ -195,7 +195,7 @@ fn show_loader(app: &mut App) {
         app.render();
 
         app.content_widget.check_state();
-        app.context_menu_widget.check_state(&mut app.content_widget);
+        app.context_menu_widget.check_state(&mut app.content_widget, &app.config.strategy);
 
         app.loading_state = false;
     }

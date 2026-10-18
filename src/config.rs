@@ -1,8 +1,8 @@
 use crate::keybind::KeyBind;
 use crossterm::event::{KeyEvent, KeyEventKind, KeyModifiers};
 use serde::Deserialize;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 use strum::IntoEnumIterator;
 
 #[derive(Deserialize, Clone)]
@@ -28,14 +28,6 @@ pub struct Strategy {
     pub download_folder: String
 }
 
-#[derive(Deserialize, Clone)]
-pub enum StrategyScope {
-    UploadFile,
-    UploadFolder,
-    DownloadFile,
-    DownloadFolder
-}
-
 impl Default for KeyBindings {
     fn default() -> Self {
         KeyBindings {
@@ -52,17 +44,6 @@ impl Default for Strategy {
             upload_folder: "merge".to_string(),
             download_file: "rename".to_string(),
             download_folder: "merge".to_string()
-        }
-    }
-}
-
-impl Strategy {
-    fn find(&self, scope: StrategyScope) -> String {
-        match scope {
-            StrategyScope::UploadFile => self.upload_file.clone(),
-            StrategyScope::UploadFolder => self.upload_folder.clone(),
-            StrategyScope::DownloadFile => self.download_file.clone(),
-            StrategyScope::DownloadFolder => self.download_folder.clone()
         }
     }
 }
@@ -113,10 +94,6 @@ impl Config {
         }
 
         KeyBind::Unknown
-    }
-
-    pub fn find_strategy() {
-
     }
 
     fn from_toml(path: &str) -> Config {

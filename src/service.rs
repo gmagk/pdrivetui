@@ -2,6 +2,7 @@ use crate::dto::{ListElement, TopDir};
 use serde::de::DeserializeOwned;
 use std::io::Error;
 use std::process::Command;
+use crate::config::Strategy;
 
 pub struct Service {}
 
@@ -19,12 +20,12 @@ impl Service {
         Self::action(format!("rename {} {}", parent_path, name))
     }
 
-    pub fn upload(parent_path: &String, source: &String) -> Result<ListElement, Error> {
-        Self::action(format!("upload {} {}", source, parent_path))
+    pub fn upload(parent_path: &String, source: &String, strategy: &Strategy) -> Result<ListElement, Error> {
+        Self::action(format!("upload -f {} -d {} {} {}", strategy.upload_file, strategy.upload_folder, source, parent_path))
     }
 
-    pub fn download(parent_path: &String, destination: &String) -> Result<ListElement, Error> {
-        Self::action(format!("download {} {}", parent_path, destination))
+    pub fn download(parent_path: &String, destination: &String, strategy: &Strategy) -> Result<ListElement, Error> {
+        Self::action(format!("download -f {} -d {} {} {}", strategy.download_file, strategy.download_folder, parent_path, destination))
     }
 
     pub fn list_dir(path: &String) -> Result<Vec<ListElement>, Error> {
@@ -77,7 +78,9 @@ impl Service {
 
         match serde_json::from_str(str.as_str()) {
             Ok(t) => Ok(t),
-            Err(e) => { Err(Error::other(format!("Error: {}\nResponse body: {}", e, str.as_str()))) }
+            Err(e) => {
+                Err(Error::other(format!("Error: {}\nResponse body: {}", e, str.as_str())))
+            }
         }
     }
 }
