@@ -1,12 +1,16 @@
 use crate::config::Config;
+use crate::keybind::KeyBind;
+use crossterm::event::KeyEvent;
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Margin, Size};
 use ratatui::prelude::{Color, Style, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Clear, Padding, Row, Table};
+use ratatui::widgets::{Block, Clear, Padding, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, Table, TableState};
+use tui_scrollview::{ScrollView, ScrollViewState};
 
 pub struct KeybindingsWidget {
-    content: [Content; 10]
+    content: [Content; 10],
+    table_state: TableState
 }
 
 struct Content {
@@ -81,11 +85,15 @@ impl KeybindingsWidget {
                     description: String::from("close context menu, e.t.c."),
                     config: false
                 }
-            ]
+            ],
+            table_state: TableState::default()
         }
     }
 
-    pub fn render(&self, frame: &mut Frame) {
+    pub fn render(&mut self, frame: &mut Frame) {
+
+        // table
+        // [
         let header_style = Style::new().fg(Color::Black);
         let headers = Row::new([
             Line::from(format!("  {}  ","action")).bold().style(header_style).left_aligned(),
@@ -104,14 +112,6 @@ impl KeybindingsWidget {
                 Line::from(format!("  {}  ",if content.config { "*" } else { "" }.to_string())).centered().style(style)
             ])
         });
-
-        let area = frame
-            .area()
-            .centered(Constraint::Percentage(80), Constraint::Percentage(50));
-        let content_area = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([ Constraint::Length(15) ])
-            .split(area)[0];
         let col_widths = [
             Constraint::Ratio(1, 6),
             Constraint::Ratio(1, 4),
@@ -123,8 +123,23 @@ impl KeybindingsWidget {
             .block(Block::new().padding(Padding::new(2, 2, 1, 1)))
             .style(Style::default().fg(Color::Gray).bg(Color::Gray))
             .column_spacing(0);
+        // ]
 
-        frame.render_widget(Clear, content_area);
-        frame.render_widget(table, content_area);
+        let area = frame
+            .area()
+            .centered(Constraint::Percentage(80), Constraint::Length(15));
+
+        frame.render_widget(Clear, area);
+        frame.render_stateful_widget(table, area, &mut self.table_state);
+    }
+
+    pub fn navigation(&mut self, key_event: &KeyEvent) {
+        if KeyBind::is_down(&key_event) {
+            // self.scroll_state.next()
+            self.table_state.select_next()
+        } else if KeyBind::is_up(&key_event) {
+            // self.scroll_state.prev()
+            self.table_state.select_previous()
+        }
     }
 }

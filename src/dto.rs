@@ -1,5 +1,8 @@
+use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::str::FromStr;
+use chrono::{DateTime, Utc};
+use humansize::{format_size, DECIMAL, format_size_i};
 
 #[derive(Default, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -18,6 +21,17 @@ impl FromStr for Type {
             "folder" => Ok(Type::Folder),
             "file" => Ok(Type::File),
             _ => Ok(Type::Unknown),
+        }
+    }
+}
+
+impl Display for Type {
+
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Folder => write!(f, "folder"),
+            Type::File => write!(f, "file"),
+            Type::Unknown => write!(f, "")
         }
     }
 }
@@ -134,4 +148,25 @@ impl ListElement {
         Ok(if ok_value.ok { ok_value.value.to_string() } else { "".to_string() })
     }
 
+    pub fn size(&self) -> String {
+        format_size(self.total_storage_size as usize, DECIMAL)
+    }
+
+    pub fn created(&self) -> String {
+        let date = DateTime::parse_from_rfc3339(&self.creation_time);
+        if date.is_err() { // case of <empty> ListElement
+            return "".to_string();
+        }
+
+        date.unwrap().with_timezone(&Utc).to_string()
+    }
+
+    pub fn modified(&self) -> String {
+        let date = DateTime::parse_from_rfc3339(&self.modification_time);
+        if date.is_err() { // case of <empty> ListElement
+            return "".to_string();
+        }
+
+        date.unwrap().with_timezone(&Utc).to_string()
+    }
 }

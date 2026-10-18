@@ -6,46 +6,46 @@ use crate::widget::content_widget::ContentWidget;
 use crate::widget::list_widget::ListWidget;
 use crossterm::event::KeyEvent;
 use ratatui::Frame;
-use ratatui::layout::{Offset, Rect};
+use ratatui::layout::Rect;
 use ratatui::prelude::{Color, Modifier, Style};
-use ratatui::style::Stylize;
-use ratatui::widgets::{Block, Borders, Clear, List, ListState, Padding, Shadow};
+use ratatui::widgets::{Block, Borders, Clear, List, ListState};
+use std::fmt::{Display, Formatter};
 use strum::IntoEnumIterator;
 
 #[derive(Clone)]
 pub enum ContextMenuItem {
-    CreateFolder,
-    Upload,
-    Download,
-    Rename,
+    Cancel,
     Copy,
-    Paste,
-    Move,
-    Place,
-    Trash,
-    Restore,
+    CreateFolder,
     Delete,
+    Download,
     EmptyTrash,
-    Cancel
+    Move,
+    Paste,
+    Place,
+    Rename,
+    Restore,
+    Trash,
+    Upload
 }
 
-impl ContextMenuItem {
+impl Display for ContextMenuItem {
 
-    pub fn name(&self) -> String {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::CreateFolder => String::from("Create SubFolder"),
-            Self::Upload => String::from("Upload"),
-            Self::Download => String::from("Download"),
-            Self::Rename => String::from("Rename"),
-            Self::Copy => String::from("Copy"),
-            Self::Paste => String::from("Paste In Here"),
-            Self::Move => String::from("Move"),
-            Self::Place => String::from("Place In Here"),
-            Self::Trash => String::from("Trash"),
-            Self::Restore => String::from("Restore"),
-            Self::Delete => String::from("Delete"),
-            Self::EmptyTrash => String::from("Empty Trash"),
-            Self::Cancel => String::from("Cancel")
+            Self::Cancel => write!(f, "Cancel"),
+            Self::Copy => write!(f, "Copy"),
+            Self::CreateFolder => write!(f, "Create SubFolder"),
+            Self::Delete => write!(f, "Delete"),
+            Self::Download => write!(f, "Download"),
+            Self::EmptyTrash => write!(f, "Empty Trash"),
+            Self::Move => write!(f, "Move"),
+            Self::Paste => write!(f, "Paste In Here"),
+            Self::Place => write!(f, "Place In Here"),
+            Self::Rename => write!(f, "Rename"),
+            Self::Restore => write!(f, "Restore"),
+            Self::Trash => write!(f, "Trash"),
+            Self::Upload => write!(f, "Upload")
         }
     }
 }
@@ -209,14 +209,14 @@ impl ContextMenuWidget {
         content_widget: &ContentWidget
     ) {
         let content_item = content_widget.selected();
-        self.items = self.items_(content_item.path(), &content_item.TYPE);
+        self.items = self.items(content_item.path(), &content_item.TYPE);
         if self.items.is_empty() {
             *context_menu_state = false;
 
             return;
         }
 
-        let widget = List::new(self.items.iter().map(|item| item.name()).collect::<Vec<String>>())
+        let widget = List::new(self.items.iter().map(|item| item.to_string()).collect::<Vec<String>>())
             .block(Block::default().borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM))
             .style(Style::new().white().on_black())
             .highlight_style(Style::default()
@@ -316,7 +316,7 @@ impl ContextMenuWidget {
     // If an action_state is active then context_menu opens only on a path which supports capabilities
     // of this action_state, other paths will not show any context_menu.
     // E.g. When pending to paste then will show context_menu only on paths where we can paste.
-    fn items_(&self, mut search_path: String, list_element_type: &Type) -> Vec<ContextMenuItem> {
+    fn items(&self, mut search_path: String, list_element_type: &Type) -> Vec<ContextMenuItem> {
         // must be of type /mypath, /mypath/subpath, ...
         if search_path.is_empty() || !search_path.starts_with('/') || search_path.len() < 2 {
             return Vec::new();
@@ -325,8 +325,8 @@ impl ContextMenuWidget {
         let is_top_path = search_path.chars().filter(|c| *c == '/').count() == 1;
 
         let capabilities = if is_top_path {
-            match Path::iter().find(|p| p.path().eq(&search_path)) {
-                Some(p) => p.capabilities(),
+            match Path::iter().find(|p| p.to_string().eq(&search_path)) {
+                Some(p) => p.top_capabilities(),
                 None => return Vec::new()
             }
         } else {
@@ -334,8 +334,8 @@ impl ContextMenuWidget {
             let mut top_path = search_path.split_once('/').unwrap().0.to_string();
             top_path = format!("/{}", top_path);
 
-            match Path::iter().find(|p| p.path().starts_with(&top_path)) {
-                Some(p) => p.child_capabilities(),
+            match Path::iter().find(|p| p.to_string().starts_with(&top_path)) {
+                Some(p) => p.child_capabilities(list_element_type),
                 None => return Vec::new()
             }
         };
@@ -359,20 +359,16 @@ impl ContextMenuWidget {
             });
         } else {
             capabilities.iter().for_each(|c| match c {
+                PathCapability::CreateFolder => items.push(ContextMenuItem::CreateFolder),
+                PathCapability::Copy => items.push(ContextMenuItem::Copy),
                 PathCapability::Delete => items.push(ContextMenuItem::Delete),
                 PathCapability::Download => items.push(ContextMenuItem::Download),
                 PathCapability::EmptyTrash => items.push(ContextMenuItem::EmptyTrash),
-                PathCapability::Copy => items.push(ContextMenuItem::Copy),
-                PathCapability::CreateFolder => if *list_element_type == Type::Folder {
-                    items.push(ContextMenuItem::CreateFolder)
-                },
                 PathCapability::Move => items.push(ContextMenuItem::Move),
                 PathCapability::Rename => items.push(ContextMenuItem::Rename),
                 PathCapability::Restore => items.push(ContextMenuItem::Restore),
                 PathCapability::Trash => items.push(ContextMenuItem::Trash),
-                PathCapability::Upload => if *list_element_type == Type::Folder {
-                    items.push(ContextMenuItem::Upload)
-                },
+                PathCapability::Upload => items.push(ContextMenuItem::Upload),
                 _ => {}
             });
         }

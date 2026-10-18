@@ -1,4 +1,6 @@
+use std::fmt::{Display, Formatter};
 use strum_macros::EnumIter;
+use crate::dto::Type;
 use crate::path::PathCapability::{Copy, CreateFolder, Delete, Download, EmptyTrash, Move, Paste, Place, Rename, Restore, Trash, Upload};
 
 #[derive(EnumIter)]
@@ -14,11 +16,11 @@ pub enum Path {
 }
 
 pub enum PathCapability {
+    CreateFolder,
+    Copy,
     Delete,
     Download,
     EmptyTrash,
-    Copy,
-    CreateFolder,
     Move,
     Paste,
     Place,
@@ -28,26 +30,28 @@ pub enum PathCapability {
     Upload
 }
 
-impl Path {
-
-    pub fn path(&self) -> String {
+impl Display for Path {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::MyFiles => "/my-files".to_string(),
-            Self::SharedWithMe => "/shared-with-me".to_string(),
-            Self::Devices => "/devices".to_string(),
-            Self::Albums => "/albums".to_string(),
-            Self::Photos => "/photos".to_string(),
-            Self::PhotosSharedWithMe => "/photos-shared-with-me".to_string(),
-            Self::PhotosTrash => "/photos-trash".to_string(),
-            Self::Trash => "/trash".to_string()
+            Self::MyFiles => write!(f, "/my-files"),
+            Self::SharedWithMe => write!(f, "/shared-with-me"),
+            Self::Devices => write!(f, "/devices"),
+            Self::Albums => write!(f, "/albums"),
+            Self::Photos => write!(f, "/photos"),
+            Self::PhotosSharedWithMe => write!(f, "/photos-shared-with-me"),
+            Self::PhotosTrash => write!(f, "/photos-trash"),
+            Self::Trash => write!(f, "/trash")
         }
     }
+}
 
-    pub fn capabilities(&self) -> Vec<PathCapability> {
+impl Path {
+
+    pub fn top_capabilities(&self) -> Vec<PathCapability> {
         match self {
-            Self::MyFiles => vec![Download, Paste, CreateFolder, Place, Upload],
-            Self::SharedWithMe => vec![Download, Paste, CreateFolder, Place, Upload],
-            Self::Devices => vec![Download, Paste, CreateFolder, Place],
+            Self::MyFiles => vec![CreateFolder, Download, Paste, Place, Upload],
+            Self::SharedWithMe => vec![CreateFolder, Download, Paste, Place, Upload],
+            Self::Devices => vec![CreateFolder, Download, Paste, Place, Upload],
             Self::Albums => vec![],
             Self::Photos => vec![],
             Self::PhotosSharedWithMe => vec![],
@@ -56,16 +60,27 @@ impl Path {
         }
     }
 
-    pub fn child_capabilities(&self) -> Vec<PathCapability> {
+    pub fn child_capabilities(&self, type_: &Type) -> Vec<PathCapability> {
         match self {
-            Self::MyFiles => vec![Download, Copy, Paste, CreateFolder, Move, Place, Rename, Trash, Upload],
-            Self::SharedWithMe => vec![Download, Copy, Paste, CreateFolder, Move, Place, Rename, Trash, Upload],
-            Self::Devices => vec![Download, Copy, Paste, CreateFolder, Move, Place, Rename],
+            Self::MyFiles => Self::add_type_specific(vec![Copy, Download, Move, Rename, Trash], type_),
+            Self::SharedWithMe => Self::add_type_specific(vec![Copy, Download, Move, Rename, Trash], type_),
+            Self::Devices => Self::add_type_specific(vec![Copy, Download, Move, Rename], type_),
             Self::Albums => vec![Rename],
             Self::Photos => vec![Rename, Trash],
             Self::PhotosSharedWithMe => vec![Rename],
             Self::PhotosTrash => vec![Rename],
             Self::Trash => vec![Delete, Restore]
         }
+    }
+
+    fn add_type_specific(mut c: Vec<PathCapability>, type_: &Type) -> Vec<PathCapability>{
+        if type_ == &Type::Folder {
+            c.push(CreateFolder);
+            c.push(Paste);
+            c.push(Place);
+            c.push(Upload);
+        }
+
+        c
     }
 }

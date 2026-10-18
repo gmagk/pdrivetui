@@ -4,6 +4,7 @@ use crate::widget::content_widget::ContentWidget;
 use crate::widget::context_menu_input_widget::ContextMenuInputWidget;
 use crate::widget::context_menu_widget::ContextMenuWidget;
 use crate::widget::details_widget::DetailsWidget;
+use crate::widget::keybindings_widget::KeybindingsWidget;
 use crate::widget::loading_widget::LoadingWidget;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEvent};
@@ -11,7 +12,6 @@ use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::{DefaultTerminal, Frame};
 use std::io;
 use tui_input::backend::crossterm::EventHandler;
-use crate::widget::keybindings_widget::KeybindingsWidget;
 
 pub struct App {
     config: Config,
@@ -81,7 +81,7 @@ impl App {
 
                 // input
                 if self.context_menu_input_state {
-                    input(self, &event);
+                    self.context_menu_input_widget.input.handle_event(&event);
                     continue;
                 }
 
@@ -108,7 +108,7 @@ impl App {
                 frame,
                 &mut self.content_widget,
                 &mut self.details_widget,
-                & self.keybindings_widget,
+                &mut self.keybindings_widget,
                 &mut self.context_menu_widget,
                 &mut self.context_menu_input_widget,
                 &mut self.keybindings_state,
@@ -124,7 +124,7 @@ fn render(
     frame: &mut Frame,
     content_widget: &mut ContentWidget,
     details_widget: &mut DetailsWidget,
-    keybindings_widget: &KeybindingsWidget,
+    keybindings_widget: &mut KeybindingsWidget,
     context_menu_widget: &mut ContextMenuWidget,
     context_menu_input_widget: &mut ContextMenuInputWidget,
     keybindings_state: &mut bool,
@@ -152,6 +152,12 @@ fn render(
 }
 
 fn navigation(app: &mut App, key_event: &KeyEvent) {
+    // keybindings
+    if app.keybindings_state {
+        app.keybindings_widget.navigation(&key_event);
+        return;
+    }
+
     // context menu
     if app.context_menu_state && !app.context_menu_input_state {
         app.context_menu_widget.navigation(&key_event);
@@ -180,10 +186,6 @@ fn action(app: &mut App) {
     } else {
         app.content_widget.action(&mut app.context_menu_state);
     }
-}
-
-fn input(app: &mut App, event: &Event) {
-    app.context_menu_input_widget.input.handle_event(&event);
 }
 
 fn show_loader(app: &mut App) {
@@ -224,5 +226,5 @@ fn content_and_details(
         .split(frame.area());
 
     content_widget.render(frame, area[0]);
-    details_widget.render(frame, area[1]);
+    details_widget.render(frame, area[1], content_widget);
 }
