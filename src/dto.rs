@@ -103,6 +103,14 @@ pub struct ListElement {
     pub is_empty: bool
 }
 
+#[derive(Default, Clone, Serialize, Deserialize)]
+#[serde(default)] // automatically use a default value when none is present in the data
+pub struct LoginResponse {
+
+    #[serde(rename = "signInUrl")]
+    pub sign_in_url: String
+}
+
 impl ListElement {
 
     pub fn is_top(&self) -> bool {

@@ -5,3 +5,5 @@ pub mod list_widget;
 pub mod context_menu_input_widget;
 pub mod loading_widget;
 pub mod keybindings_widget;
+pub mod login_widget;
+pub mod login_url_widget;

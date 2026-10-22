@@ -48,6 +48,7 @@ impl App {
     }
 
     pub fn run(&mut self) -> io::Result<()>{
+
         self.content_widget.request_top_items();
 
         loop {

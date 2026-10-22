@@ -18,12 +18,10 @@ impl LoadingWidget {
                 Constraint::Fill(1),
                 Constraint::Length(10),
                 Constraint::Fill(1),
-            ])
-            .split(area)[1];
+            ]).split(area)[1];
         let middle = Layout::vertical([
                 Constraint::Percentage(100),
-            ])
-            .split(content_area)[0];
+            ]).split(content_area)[0];
         let content = Paragraph::new("Loading...")
             .block(Block::bordered())
             .centered()
